@@ -120,18 +120,22 @@ public abstract class AopConfigUtils {
 
 		Assert.notNull(registry, "BeanDefinitionRegistry must not be null");
 
+		// 获取当前已存在的{org.springframework.aop.config.internalAutoProxyCreator}的BeanDefinition，
+		// 如果当前BeanDefinition中的Class和入参的Class不同，则比较两者优先级，优先级高的将被使用，优先级在本类的static代码块中定义好了
 		if (registry.containsBeanDefinition(AUTO_PROXY_CREATOR_BEAN_NAME)) {
 			BeanDefinition apcDefinition = registry.getBeanDefinition(AUTO_PROXY_CREATOR_BEAN_NAME);
 			if (!cls.getName().equals(apcDefinition.getBeanClassName())) {
 				int currentPriority = findPriorityForClass(apcDefinition.getBeanClassName());
 				int requiredPriority = findPriorityForClass(cls);
 				if (currentPriority < requiredPriority) {
+					// 改变BeanDefinition最重要的就是改变BeanClassName
 					apcDefinition.setBeanClassName(cls.getName());
 				}
 			}
 			return null;
 		}
 
+		// 如果当前不存在相关的BeanDefinition，则根据入参新建一个，并注册到BeanDefinitionRegistry中
 		RootBeanDefinition beanDefinition = new RootBeanDefinition(cls);
 		beanDefinition.setSource(source);
 		beanDefinition.getPropertyValues().add("order", Ordered.HIGHEST_PRECEDENCE);

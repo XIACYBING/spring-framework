@@ -244,12 +244,16 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 
 	@Override
 	public Object postProcessBeforeInstantiation(Class<?> beanClass, String beanName) {
+		// 根据给定的class和beanName构建一个cacheKey，用于多个集合中存储代理
 		Object cacheKey = getCacheKey(beanClass, beanName);
 
+		// 如果当前beanName不为空，或targetSourceBeans集合中没有当前beanName
 		if (!StringUtils.hasLength(beanName) || !this.targetSourcedBeans.contains(beanName)) {
+			// todo 没能理解
 			if (this.advisedBeans.containsKey(cacheKey)) {
 				return null;
 			}
+			// 如果当前bean是infrastructure的bean（类似基础组件，无需代理），或是某些特定的需要跳过的bean，则将它加入advisedBeans集合中，并返回null
 			if (isInfrastructureClass(beanClass) || shouldSkip(beanClass, beanName)) {
 				this.advisedBeans.put(cacheKey, Boolean.FALSE);
 				return null;
@@ -259,6 +263,9 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 		// Create proxy here if we have a custom TargetSource.
 		// Suppresses unnecessary default instantiation of the target bean:
 		// The TargetSource will handle target instances in a custom fashion.
+		// 7.10. 使用TargetSource：https://www.php.cn/manual/view/21815.html
+
+		// 看代码逻辑大概是在某些必要条件下，需要在对应bean实例化前就生成它的代理，然后返回，具体理由还待确认
 		TargetSource targetSource = getCustomTargetSource(beanClass, beanName);
 		if (targetSource != null) {
 			if (StringUtils.hasLength(beanName)) {
@@ -286,8 +293,10 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 	@Override
 	public Object postProcessAfterInitialization(@Nullable Object bean, String beanName) {
 		if (bean != null) {
+			// 根据给定的class和beanName构建一个cacheKey，用于多个集合中存储代理
 			Object cacheKey = getCacheKey(bean.getClass(), beanName);
 			if (this.earlyProxyReferences.remove(cacheKey) != bean) {
+				// 如果当前bean需要代理，则会进行代理封装
 				return wrapIfNecessary(bean, beanName, cacheKey);
 			}
 		}
@@ -324,12 +333,15 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 	 * @return a proxy wrapping the bean, or the raw bean instance as-is
 	 */
 	protected Object wrapIfNecessary(Object bean, String beanName, Object cacheKey) {
+		// 在before中处理过，如果是已经生成过代理的，则会将beanName放入targetSourcedBeans中，在after中自然不需要处理
 		if (StringUtils.hasLength(beanName) && this.targetSourcedBeans.contains(beanName)) {
 			return bean;
 		}
+		// 在before中进行过判断，如果无需代理则会在advisedBeans中置入{beanName:false}
 		if (Boolean.FALSE.equals(this.advisedBeans.get(cacheKey))) {
 			return bean;
 		}
+		// 在此处再次进行是否需要跳过的判断，todo 是否是因为before到after过程中有某些因素会导致这里的判断结果发生变化
 		if (isInfrastructureClass(bean.getClass()) || shouldSkip(bean.getClass(), beanName)) {
 			this.advisedBeans.put(cacheKey, Boolean.FALSE);
 			return bean;

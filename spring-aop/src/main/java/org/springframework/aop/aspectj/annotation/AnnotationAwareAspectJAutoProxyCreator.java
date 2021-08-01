@@ -22,7 +22,9 @@ import java.util.regex.Pattern;
 
 import org.springframework.aop.Advisor;
 import org.springframework.aop.aspectj.autoproxy.AspectJAwareAdvisorAutoProxyCreator;
+import org.springframework.aop.framework.autoproxy.AbstractAutoProxyCreator;
 import org.springframework.beans.factory.ListableBeanFactory;
+import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
@@ -45,6 +47,10 @@ import org.springframework.util.Assert;
  * @author Juergen Hoeller
  * @since 2.0
  * @see org.springframework.aop.aspectj.annotation.AspectJAdvisorFactory
+ *
+ * 当前类继承了{@link BeanPostProcessor}，对一个Bean创建代理类时，就是在{@link BeanPostProcessor#postProcessAfterInitialization(java.lang.Object, java.lang.String)}中进行的
+ * 而当前类对这部分逻辑的实现是在其抽象父类{@link AbstractAutoProxyCreator}的方法{postProcessAfterInitialization}方法中实现的，下面附上快速跳转链接
+ * {@link AbstractAutoProxyCreator#postProcessAfterInitialization(java.lang.Object, java.lang.String)}
  */
 @SuppressWarnings("serial")
 public class AnnotationAwareAspectJAutoProxyCreator extends AspectJAwareAdvisorAutoProxyCreator {
