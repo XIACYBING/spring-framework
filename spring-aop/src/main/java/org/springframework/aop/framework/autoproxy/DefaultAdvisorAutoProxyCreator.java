@@ -99,6 +99,7 @@ public class DefaultAdvisorAutoProxyCreator extends AbstractAdvisorAutoProxyCrea
 	 */
 	@Override
 	protected boolean isEligibleAdvisorBean(String beanName) {
+		// 如果当前自动代理创建器要求增强器名称要有特定前缀，则进行相关判断，否则直接返回true
 		if (!isUsePrefix()) {
 			return true;
 		}
