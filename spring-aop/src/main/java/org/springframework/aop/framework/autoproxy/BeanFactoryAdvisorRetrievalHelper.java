@@ -66,28 +66,38 @@ public class BeanFactoryAdvisorRetrievalHelper {
 	 */
 	public List<Advisor> findAdvisorBeans() {
 		// Determine list of advisor bean names, if not cached already.
+		// 获取当前已缓存的增强器名称
 		String[] advisorNames = this.cachedAdvisorBeanNames;
 		if (advisorNames == null) {
 			// Do not initialize FactoryBeans here: We need to leave all regular beans
 			// uninitialized to let the auto-proxy creator apply to them!
+			// 如果为空则通过BeanFactoryUtils获取所有类型为Advisor的bean名称
 			advisorNames = BeanFactoryUtils.beanNamesForTypeIncludingAncestors(
 					this.beanFactory, Advisor.class, true, false);
 			this.cachedAdvisorBeanNames = advisorNames;
 		}
+		// 如果最后advisorNames长度还是为0，说明当前无增强器
 		if (advisorNames.length == 0) {
 			return new ArrayList<>();
 		}
 
 		List<Advisor> advisors = new ArrayList<>();
+		// 循环增强器的名称，判断是否有效的增强器，组装并加入增强器集合advisors中
 		for (String name : advisorNames) {
+			// 判断是否有效的增强器，底层实现有以下两种
+			// org.springframework.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator.isEligibleAdvisorBean
+			// org.springframework.aop.framework.autoproxy.InfrastructureAdvisorAutoProxyCreator.isEligibleAdvisorBean
 			if (isEligibleBean(name)) {
+				// 如果当前增强器还在创建中，说明当前增强器处于循环依赖流程中，无需进行以下流程
 				if (this.beanFactory.isCurrentlyInCreation(name)) {
 					if (logger.isTraceEnabled()) {
 						logger.trace("Skipping currently created advisor '" + name + "'");
 					}
 				}
 				else {
+					// 否则说明不处于循环依赖流程中，继续接下来的逻辑
 					try {
+						// 直接从beanFactory中获取对应增强器实例
 						advisors.add(this.beanFactory.getBean(name, Advisor.class));
 					}
 					catch (BeanCreationException ex) {
@@ -95,6 +105,7 @@ public class BeanFactoryAdvisorRetrievalHelper {
 						if (rootCause instanceof BeanCurrentlyInCreationException) {
 							BeanCreationException bce = (BeanCreationException) rootCause;
 							String bceBeanName = bce.getBeanName();
+							// 如果抛出的bean创建异常是BeanCurrentlyInCreationException，且对应bceBeanName确实处在创建中，则忽略该异常
 							if (bceBeanName != null && this.beanFactory.isCurrentlyInCreation(bceBeanName)) {
 								if (logger.isTraceEnabled()) {
 									logger.trace("Skipping advisor '" + name +
@@ -105,11 +116,13 @@ public class BeanFactoryAdvisorRetrievalHelper {
 								continue;
 							}
 						}
+						// 如果是其他的bean创建异常，则向外抛出
 						throw ex;
 					}
 				}
 			}
 		}
+		// 返回整个advisors
 		return advisors;
 	}
 

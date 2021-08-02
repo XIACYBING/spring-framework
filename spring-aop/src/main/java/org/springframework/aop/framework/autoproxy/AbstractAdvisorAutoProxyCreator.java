@@ -75,9 +75,10 @@ public abstract class AbstractAdvisorAutoProxyCreator extends AbstractAutoProxyC
 	protected Object[] getAdvicesAndAdvisorsForBean(
 			Class<?> beanClass, String beanName, @Nullable TargetSource targetSource) {
 
-		// 获取有资格的增强器并返回 todo 202108012252暂存此处
+		// 获取有资格的增强器并返回
 		List<Advisor> advisors = findEligibleAdvisors(beanClass, beanName);
 		if (advisors.isEmpty()) {
+			// 如果没有有资格的增强器，则直接返回null
 			return DO_NOT_PROXY;
 		}
 		return advisors.toArray();
@@ -94,10 +95,16 @@ public abstract class AbstractAdvisorAutoProxyCreator extends AbstractAutoProxyC
 	 * @see #extendAdvisors
 	 */
 	protected List<Advisor> findEligibleAdvisors(Class<?> beanClass, String beanName) {
+		// 获取所有可用的增强器，这里调用的方法子类有覆写，所以要注意调用的是哪个方法
 		List<Advisor> candidateAdvisors = findCandidateAdvisors();
+
+		// 获取所有能应用在当前class上的增强器
 		List<Advisor> eligibleAdvisors = findAdvisorsThatCanApply(candidateAdvisors, beanClass, beanName);
+
+		// 扩展这些增强器，该方法是个空方法，等待子类重写
 		extendAdvisors(eligibleAdvisors);
 		if (!eligibleAdvisors.isEmpty()) {
+			// 根据增强器的order属性排序增强器
 			eligibleAdvisors = sortAdvisors(eligibleAdvisors);
 		}
 		return eligibleAdvisors;
@@ -109,6 +116,7 @@ public abstract class AbstractAdvisorAutoProxyCreator extends AbstractAutoProxyC
 	 */
 	protected List<Advisor> findCandidateAdvisors() {
 		Assert.state(this.advisorRetrievalHelper != null, "No BeanFactoryAdvisorRetrievalHelper available");
+		// 获取当前beanFactory中所有Advisor类型的beanName - 判断对应增强器是否有资格 - 加入advisors - 返回advisors
 		return this.advisorRetrievalHelper.findAdvisorBeans();
 	}
 
@@ -124,6 +132,7 @@ public abstract class AbstractAdvisorAutoProxyCreator extends AbstractAutoProxyC
 	protected List<Advisor> findAdvisorsThatCanApply(
 			List<Advisor> candidateAdvisors, Class<?> beanClass, String beanName) {
 
+		// todo 202108022328暂存于此
 		ProxyCreationContext.setCurrentProxiedBeanName(beanName);
 		try {
 			return AopUtils.findAdvisorsThatCanApply(candidateAdvisors, beanClass);
