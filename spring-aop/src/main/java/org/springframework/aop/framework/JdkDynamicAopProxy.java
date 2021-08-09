@@ -123,6 +123,7 @@ final class JdkDynamicAopProxy implements AopProxy, InvocationHandler, Serializa
 		if (logger.isTraceEnabled()) {
 			logger.trace("Creating JDK dynamic proxy: " + this.advised.getTargetSource());
 		}
+		// 如果是JDK代理，直接newProxyInstance创建JDK代理，实际的代理拦截是在当前类的invoke方法中做的
 		return Proxy.newProxyInstance(classLoader, this.proxiedInterfaces, this);
 	}
 
@@ -157,6 +158,7 @@ final class JdkDynamicAopProxy implements AopProxy, InvocationHandler, Serializa
 	@Override
 	@Nullable
 	public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+		// todo 此处进行代理调用，暂存
 		Object oldProxy = null;
 		boolean setProxyContext = false;
 

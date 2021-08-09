@@ -508,7 +508,7 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 			classLoader = ((SmartClassLoader) classLoader).getOriginalClassLoader();
 		}
 
-		// 置入类加载器，获取对应的代理，底下有JDK和CGLIB两种代理
+		// 置入类加载器，获取对应的代理，底下有JDK和CGLIB两种实现
 		return proxyFactory.getProxy(classLoader);
 	}
 

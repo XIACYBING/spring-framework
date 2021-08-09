@@ -51,19 +51,27 @@ public class DefaultAopProxyFactory implements AopProxyFactory, Serializable {
 
 	@Override
 	public AopProxy createAopProxy(AdvisedSupport config) throws AopConfigException {
+		// todo NativeDetector暂时不清楚是做什么，先略过
 		if (!NativeDetector.inNativeImage() &&
+				// isOptimize：用来通过控制CGLIB创建的代理是否使用激进的优化策略的配置，除非完全了解AOP代理如何处理优化，否则不建议使用该配置，该配置只对CGLIB有用
+				// isProxyTargetClass：是否代理目标类，如果是的话就使用CGLIB代理（JDK代理基于接口）
+				// hasNoUserSuppliedProxyInterfaces：判断代理类是否不存在代理接口，或只存在SpringProxy的代理接口
 				(config.isOptimize() || config.isProxyTargetClass() || hasNoUserSuppliedProxyInterfaces(config))) {
+			// 获取目标类实例
 			Class<?> targetClass = config.getTargetClass();
 			if (targetClass == null) {
 				throw new AopConfigException("TargetSource cannot determine target class: " +
 						"Either an interface or a target is required for proxy creation.");
 			}
+			// 如果目标类实例是接口，或对应的类是通过getProxyClass方法或newProxyInstance方法动态生成的代理类时，才使用JDK代理
 			if (targetClass.isInterface() || Proxy.isProxyClass(targetClass)) {
 				return new JdkDynamicAopProxy(config);
 			}
+			// 否则就使用CGLIB代理
 			return new ObjenesisCglibAopProxy(config);
 		}
 		else {
+			// 使用JDK代理
 			return new JdkDynamicAopProxy(config);
 		}
 	}

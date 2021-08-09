@@ -221,26 +221,39 @@ public abstract class AopProxyUtils {
 		if (ObjectUtils.isEmpty(arguments)) {
 			return new Object[0];
 		}
+		// 对于可变参数的一些适配处理
 		if (method.isVarArgs()) {
 			if (method.getParameterCount() == arguments.length) {
+				// 获取参数类型集合
 				Class<?>[] paramTypes = method.getParameterTypes();
+				// 获取最后一个参数的索引
 				int varargIndex = paramTypes.length - 1;
+				// 获取最后一个参数的类型
+				// todo 在可变参数中，方法的最后一个参数类型是什么？以及可变参数在方法参数集合中会以什么类型展示？
 				Class<?> varargType = paramTypes[varargIndex];
+				// 如果类型是数组
 				if (varargType.isArray()) {
+					// 获取最后一个参数(数组)
 					Object varargArray = arguments[varargIndex];
+					// 如果最后一个参数是Object数组，且非最后一个可变参数类型的实例
 					if (varargArray instanceof Object[] && !varargType.isInstance(varargArray)) {
+						// 新建一个参数数组，从原参数数组上复制，除了最后一个参数
 						Object[] newArguments = new Object[arguments.length];
 						System.arraycopy(arguments, 0, newArguments, 0, varargIndex);
+						// 获取可变类型中实际的元素类型
 						Class<?> targetElementType = varargType.getComponentType();
 						int varargLength = Array.getLength(varargArray);
+						// 新建一个可变参数类型的数组，并将原来的可变参数内容复制进去
 						Object newVarargArray = Array.newInstance(targetElementType, varargLength);
 						System.arraycopy(varargArray, 0, newVarargArray, 0, varargLength);
+						// 将可变参数设置到新参数数组中的最后一位，并返回新参数数组
 						newArguments[varargIndex] = newVarargArray;
 						return newArguments;
 					}
 				}
 			}
 		}
+		// 无可变参数直接返回
 		return arguments;
 	}
 
