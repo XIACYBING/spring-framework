@@ -68,6 +68,7 @@ public abstract class AutoProxyUtils {
 	public static boolean shouldProxyTargetClass(
 			ConfigurableListableBeanFactory beanFactory, @Nullable String beanName) {
 
+		// 存在bean定义，且bean定义中的preserveTargetClass为true，则返回true，表示需要代理目标类而不是接口
 		if (beanName != null && beanFactory.containsBeanDefinition(beanName)) {
 			BeanDefinition bd = beanFactory.getBeanDefinition(beanName);
 			return Boolean.TRUE.equals(bd.getAttribute(PRESERVE_TARGET_CLASS_ATTRIBUTE));
@@ -111,7 +112,9 @@ public abstract class AutoProxyUtils {
 	static void exposeTargetClass(
 			ConfigurableListableBeanFactory beanFactory, @Nullable String beanName, Class<?> targetClass) {
 
+		// beanName不为空，且当前bean工厂包含对应beanName的beanDefinition
 		if (beanName != null && beanFactory.containsBeanDefinition(beanName)) {
+			// 则在创建代理前记录该类原来的Class
 			beanFactory.getMergedBeanDefinition(beanName).setAttribute(ORIGINAL_TARGET_CLASS_ATTRIBUTE, targetClass);
 		}
 	}

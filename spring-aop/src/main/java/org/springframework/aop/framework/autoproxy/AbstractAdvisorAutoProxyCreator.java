@@ -81,6 +81,7 @@ public abstract class AbstractAdvisorAutoProxyCreator extends AbstractAutoProxyC
 			// 如果没有有资格的增强器，则直接返回null
 			return DO_NOT_PROXY;
 		}
+		// 转换成数组返回
 		return advisors.toArray();
 	}
 
@@ -132,9 +133,10 @@ public abstract class AbstractAdvisorAutoProxyCreator extends AbstractAutoProxyC
 	protected List<Advisor> findAdvisorsThatCanApply(
 			List<Advisor> candidateAdvisors, Class<?> beanClass, String beanName) {
 
-		// todo 202108022328暂存于此
+		// 设置当前正在进行代理的bean名称，在finally中移除对应的beanName
 		ProxyCreationContext.setCurrentProxiedBeanName(beanName);
 		try {
+			// 获取所有可以应用在当前class的bean实例的增强器
 			return AopUtils.findAdvisorsThatCanApply(candidateAdvisors, beanClass);
 		}
 		finally {
