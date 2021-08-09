@@ -253,7 +253,8 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 			if (this.advisedBeans.containsKey(cacheKey)) {
 				return null;
 			}
-			// 如果当前bean是infrastructure的bean（类似基础组件，无需代理），或是某些特定的需要跳过的bean，则将它加入advisedBeans集合中，并返回null
+			// 如果当前bean是infrastructure的bean（类似基础组件，无需代理），或是某些特定的需要跳过的bean，则将它加入advisedBeans集合中，
+			// 并返回null
 			if (isInfrastructureClass(beanClass) || shouldSkip(beanClass, beanName)) {
 				this.advisedBeans.put(cacheKey, Boolean.FALSE);
 				return null;
@@ -348,15 +349,20 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 		}
 
 		// Create proxy if we have advice.
+		// 获取所有可以应用在当前bean上的增强器
 		Object[] specificInterceptors = getAdvicesAndAdvisorsForBean(bean.getClass(), beanName, null);
 		if (specificInterceptors != DO_NOT_PROXY) {
+			// 在advisedBeans集合中放入当前bean的cacheKey，代表当前bean已经被处理过，且可以代理
 			this.advisedBeans.put(cacheKey, Boolean.TRUE);
+			// 创建代理
 			Object proxy = createProxy(
 					bean.getClass(), beanName, specificInterceptors, new SingletonTargetSource(bean));
+			// 在proxyTypes集合中放入当前bean的CacheKey，和代理类的Class，以供后续判断使用
 			this.proxyTypes.put(cacheKey, proxy.getClass());
 			return proxy;
 		}
 
+		// 在advisedBeans集合中放入当前bean的cacheKey，代表当前bean已经被处理过，但是无法被代理
 		this.advisedBeans.put(cacheKey, Boolean.FALSE);
 		return bean;
 	}
@@ -446,17 +452,23 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 	protected Object createProxy(Class<?> beanClass, @Nullable String beanName,
 			@Nullable Object[] specificInterceptors, TargetSource targetSource) {
 
+		// 记录对应类原来的Class，即beanClass
 		if (this.beanFactory instanceof ConfigurableListableBeanFactory) {
 			AutoProxyUtils.exposeTargetClass((ConfigurableListableBeanFactory) this.beanFactory, beanName, beanClass);
 		}
 
+		// 创建一个代理工厂，从当前实例中获取代理工厂所需的某些信息
 		ProxyFactory proxyFactory = new ProxyFactory();
 		proxyFactory.copyFrom(this);
 
+		// 是否直接代理目标类
 		if (proxyFactory.isProxyTargetClass()) {
 			// Explicit handling of JDK proxy targets (for introduction advice scenarios)
+			// 如果已经是JDK代理过的，则在此处处理
 			if (Proxy.isProxyClass(beanClass)) {
 				// Must allow for introductions; can't just set interfaces to the proxy's interfaces only.
+				// todo what is Introduction？？
+				// 获取类的所有接口，放入代理工厂中
 				for (Class<?> ifc : beanClass.getInterfaces()) {
 					proxyFactory.addInterface(ifc);
 				}
@@ -464,29 +476,39 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 		}
 		else {
 			// No proxyTargetClass flag enforced, let's apply our default checks...
+			// 判断是否应该代理目标类
 			if (shouldProxyTargetClass(beanClass, beanName)) {
 				proxyFactory.setProxyTargetClass(true);
 			}
 			else {
+				// 评估获取适合可用的代理接口，如果获取不到则还是代理目标类
 				evaluateProxyInterfaces(beanClass, proxyFactory);
 			}
 		}
 
+		// 创建实际可应用的增强器
 		Advisor[] advisors = buildAdvisors(beanName, specificInterceptors);
+		// 记录增强器和原来的bean实例
 		proxyFactory.addAdvisors(advisors);
 		proxyFactory.setTargetSource(targetSource);
 		customizeProxyFactory(proxyFactory);
 
+		// todo 冻结配置是干啥的？
 		proxyFactory.setFrozen(this.freezeProxy);
+
+		// todo 预过滤？没搞懂干啥的
 		if (advisorsPreFiltered()) {
 			proxyFactory.setPreFiltered(true);
 		}
 
 		// Use original ClassLoader if bean class not locally loaded in overriding class loader
+		// 进行类加载器相关的判断
 		ClassLoader classLoader = getProxyClassLoader();
 		if (classLoader instanceof SmartClassLoader && classLoader != beanClass.getClassLoader()) {
 			classLoader = ((SmartClassLoader) classLoader).getOriginalClassLoader();
 		}
+
+		// 置入类加载器，获取对应的代理，底下有JDK和CGLIB两种代理
 		return proxyFactory.getProxy(classLoader);
 	}
 
@@ -500,6 +522,7 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 	 * @see AutoProxyUtils#shouldProxyTargetClass
 	 */
 	protected boolean shouldProxyTargetClass(Class<?> beanClass, @Nullable String beanName) {
+		// bean工厂为ConfigurableListableBeanFactory时才可进行相关判断
 		return (this.beanFactory instanceof ConfigurableListableBeanFactory &&
 				AutoProxyUtils.shouldProxyTargetClass((ConfigurableListableBeanFactory) this.beanFactory, beanName));
 	}

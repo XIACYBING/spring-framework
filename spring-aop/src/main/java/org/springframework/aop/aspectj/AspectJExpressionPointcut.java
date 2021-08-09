@@ -269,9 +269,11 @@ public class AspectJExpressionPointcut extends AbstractExpressionPointcut
 
 	@Override
 	public boolean matches(Class<?> targetClass) {
+		// 获取当前类中的AspectJ表达式
 		PointcutExpression pointcutExpression = obtainPointcutExpression();
 		try {
 			try {
+				// 判断对应的类对象是否匹配表达式，采取的实现是aspectJ自身的匹配实现
 				return pointcutExpression.couldMatchJoinPointsInType(targetClass);
 			}
 			catch (ReflectionWorldException ex) {
@@ -330,6 +332,7 @@ public class AspectJExpressionPointcut extends AbstractExpressionPointcut
 	@Override
 	public boolean matches(Method method, Class<?> targetClass, Object... args) {
 		obtainPointcutExpression();
+		// todo 此处内容较复杂，且感觉暂时没用，先略过
 		ShadowMatch shadowMatch = getTargetShadowMatch(method, targetClass);
 
 		// Bind Spring AOP proxy to AspectJ "this" and Spring AOP target to AspectJ target,
@@ -426,7 +429,9 @@ public class AspectJExpressionPointcut extends AbstractExpressionPointcut
 	}
 
 	private ShadowMatch getTargetShadowMatch(Method method, Class<?> targetClass) {
+		// 获取可能存在的实现方法（某些特殊情况的处理）
 		Method targetMethod = AopUtils.getMostSpecificMethod(method, targetClass);
+		// 如果当前方法是个接口方法
 		if (targetMethod.getDeclaringClass().isInterface()) {
 			// Try to build the most specific interface possible for inherited methods to be
 			// considered for sub-interface matches as well, in particular for proxy classes.

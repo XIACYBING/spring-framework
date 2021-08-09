@@ -76,9 +76,9 @@ public abstract class ClassUtils {
 
 	/** The nested class separator character: {@code '$'}. */
 	private static final char NESTED_CLASS_SEPARATOR = '$';
-
 	/** The CGLIB class separator: {@code "$$"}. */
 	public static final String CGLIB_CLASS_SEPARATOR = "$$";
+
 
 	/** The ".class" file suffix. */
 	public static final String CLASS_FILE_SUFFIX = ".class";
@@ -894,6 +894,7 @@ public abstract class ClassUtils {
 	 * @return the user-defined class
 	 */
 	public static Class<?> getUserClass(Class<?> clazz) {
+		// 如果类名称包含$$，说明是CGLIB生成的相关代理类，获取其可能存在的父类并返回
 		if (clazz.getName().contains(CGLIB_CLASS_SEPARATOR)) {
 			Class<?> superclass = clazz.getSuperclass();
 			if (superclass != null && superclass != Object.class) {

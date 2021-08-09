@@ -193,6 +193,7 @@ public abstract class AopUtils {
 	 * @see org.springframework.util.ClassUtils#getMostSpecificMethod
 	 */
 	public static Method getMostSpecificMethod(Method method, @Nullable Class<?> targetClass) {
+		// 方法可能是接口上的方法，而类可能是接口的实现类，则此时需要将接口方法在类中的实现方法返回
 		Class<?> specificTargetClass = (targetClass != null ? ClassUtils.getUserClass(targetClass) : null);
 		Method resolvedMethod = ClassUtils.getMostSpecificMethod(method, specificTargetClass);
 		// If we are dealing with method with generic parameters, find the original method.
@@ -220,33 +221,43 @@ public abstract class AopUtils {
 	 * @param hasIntroductions whether or not the advisor chain
 	 * for this bean includes any introductions
 	 * @return whether the pointcut can apply on any method
+	 * 匹配类 -> 处理特殊情况 -> 匹配所有类（包含父类和自身）方法（只要有一个匹配成功的就返回true）
 	 */
 	public static boolean canApply(Pointcut pc, Class<?> targetClass, boolean hasIntroductions) {
 		Assert.notNull(pc, "Pointcut must not be null");
+		// 进入切点增强器判断，同样，第一时间是进行ClassFilter的匹配
+		// Pointcut的实现有多种，这里只看AspectJExpressionPointCut，该实现中返回的ClassFilter是自身
 		if (!pc.getClassFilter().matches(targetClass)) {
 			return false;
 		}
 
+		// 如果methodMatcher是一个特殊的TRUE实例，那就意味着可以匹配类下的所有方法，直接返回true即可
 		MethodMatcher methodMatcher = pc.getMethodMatcher();
 		if (methodMatcher == MethodMatcher.TRUE) {
 			// No need to iterate the methods if we're matching any method anyway...
 			return true;
 		}
 
+		// 否则还需要匹配方法是否符合要求
 		IntroductionAwareMethodMatcher introductionAwareMethodMatcher = null;
 		if (methodMatcher instanceof IntroductionAwareMethodMatcher) {
 			introductionAwareMethodMatcher = (IntroductionAwareMethodMatcher) methodMatcher;
 		}
 
 		Set<Class<?>> classes = new LinkedHashSet<>();
+		// 如果非JDK动态代理的类，则处理可能存在的CGLIB代理的情况
 		if (!Proxy.isProxyClass(targetClass)) {
 			classes.add(ClassUtils.getUserClass(targetClass));
 		}
+		// 获取对应类对象所有父级接口和父类
 		classes.addAll(ClassUtils.getAllInterfacesForClassAsSet(targetClass));
 
+		// 循环当前类对象的所有父级，以及它自身，循环对应类底下的方法，进行匹配
 		for (Class<?> clazz : classes) {
+			// 获取类中的所有方法
 			Method[] methods = ReflectionUtils.getAllDeclaredMethods(clazz);
 			for (Method method : methods) {
+				// 如果有任意一个方法能够被匹配，则返回true，说明该类能被增强器增强
 				if (introductionAwareMethodMatcher != null ?
 						introductionAwareMethodMatcher.matches(method, targetClass, hasIntroductions) :
 						methodMatcher.matches(method, targetClass)) {
@@ -255,6 +266,7 @@ public abstract class AopUtils {
 			}
 		}
 
+		// 循环结束，都不能增强，返回false
 		return false;
 	}
 
@@ -267,6 +279,7 @@ public abstract class AopUtils {
 	 * @return whether the pointcut can apply on any method
 	 */
 	public static boolean canApply(Advisor advisor, Class<?> targetClass) {
+		// 继续调用下一层方法
 		return canApply(advisor, targetClass, false);
 	}
 
@@ -281,15 +294,25 @@ public abstract class AopUtils {
 	 * @return whether the pointcut can apply on any method
 	 */
 	public static boolean canApply(Advisor advisor, Class<?> targetClass, boolean hasIntroductions) {
+		// 方法的逻辑都主要是，判断增强器类型，不同增强器类型进行不同的判断
+
+		// 从我们目前走的链路来看，只会进入IntroductionAdvisor这条链路
 		if (advisor instanceof IntroductionAdvisor) {
+			// IntroductionAdvisor下的getClassFilter的实现有三个，其中一个是测试类的实现，这里不管
+			// 另外两个分别是：
+			// 	org.springframework.aop.aspectj.DeclareParentsAdvisor：getClassFilter返回由自身在构造器中定义的一个ClassFilter，而后匹配
+			//	org.springframework.aop.support.DefaultIntroductionAdvisor：getClassFilter返回自身，且对应的matches方法永远返回true
 			return ((IntroductionAdvisor) advisor).getClassFilter().matches(targetClass);
 		}
 		else if (advisor instanceof PointcutAdvisor) {
+			// 如果是切点增强器，就进入当前的判断
+			// todo 切点增强器？只包含@Pointcut？
 			PointcutAdvisor pca = (PointcutAdvisor) advisor;
 			return canApply(pca.getPointcut(), targetClass, hasIntroductions);
 		}
 		else {
 			// It doesn't have a pointcut so we assume it applies.
+			// 否则全部默认返回true
 			return true;
 		}
 	}
@@ -303,21 +326,31 @@ public abstract class AopUtils {
 	 * (may be the incoming List as-is)
 	 */
 	public static List<Advisor> findAdvisorsThatCanApply(List<Advisor> candidateAdvisors, Class<?> clazz) {
+		// 集合为空，直接返回
 		if (candidateAdvisors.isEmpty()) {
 			return candidateAdvisors;
 		}
+
+		// 新增一个有效的增强器集合，用于放置可以应用的增强器
 		List<Advisor> eligibleAdvisors = new ArrayList<>();
 		for (Advisor candidate : candidateAdvisors) {
+			// 只有类型为IntroductionAdvisor的且通过验证的增强器，才能应用
+			// 这里只处理IntroductionAdvisor，其他类型在下一个循环中处理
 			if (candidate instanceof IntroductionAdvisor && canApply(candidate, clazz)) {
 				eligibleAdvisors.add(candidate);
 			}
 		}
+
+		// 如果eligibleAdvisors集合不为空，说明有类型为IntroductionAdvisor的增强器
 		boolean hasIntroductions = !eligibleAdvisors.isEmpty();
 		for (Advisor candidate : candidateAdvisors) {
 			if (candidate instanceof IntroductionAdvisor) {
 				// already processed
+				// IntroductionAdvisor在上一个循环中已经处理过了
 				continue;
 			}
+			// 判断增强器是否可应用
+			// hasIntroductions最终应用在ClassMather中的match上，具体应用还不确认
 			if (canApply(candidate, clazz, hasIntroductions)) {
 				eligibleAdvisors.add(candidate);
 			}

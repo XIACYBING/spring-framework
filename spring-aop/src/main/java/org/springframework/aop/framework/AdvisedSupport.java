@@ -204,7 +204,9 @@ public class AdvisedSupport extends ProxyConfig implements Advised {
 			throw new IllegalArgumentException("[" + intf.getName() + "] is not an interface");
 		}
 		if (!this.interfaces.contains(intf)) {
+			// 加入接口集合中
 			this.interfaces.add(intf);
+			// 清除methodCache
 			adviceChanged();
 		}
 	}
