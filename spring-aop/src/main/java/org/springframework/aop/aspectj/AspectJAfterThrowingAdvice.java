@@ -62,9 +62,12 @@ public class AspectJAfterThrowingAdvice extends AbstractAspectJAdvice
 			return mi.proceed();
 		}
 		catch (Throwable ex) {
+			// 捕获到异常后，判断是否是需要进行通知的异常
 			if (shouldInvokeOnThrowing(ex)) {
+				// 如果需要的话就调用通知方法
 				invokeAdviceMethod(getJoinPointMatch(), null, ex);
 			}
+			// 然后再次抛出异常
 			throw ex;
 		}
 	}
@@ -74,6 +77,7 @@ public class AspectJAfterThrowingAdvice extends AbstractAspectJAdvice
 	 * is only invoked if the thrown exception is a subtype of the given throwing type.
 	 */
 	private boolean shouldInvokeOnThrowing(Throwable ex) {
+		// 判断接受异常是否是抛出异常的父类/接口/同类
 		return getDiscoveredThrowingType().isAssignableFrom(ex.getClass());
 	}
 

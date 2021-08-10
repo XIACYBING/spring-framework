@@ -78,6 +78,7 @@ public abstract class AopProxyUtils {
 		Assert.notNull(candidate, "Candidate object must not be null");
 		Object current = candidate;
 		Class<?> result = null;
+		// 获取最终的目标实例
 		while (current instanceof TargetClassAware) {
 			result = ((TargetClassAware) current).getTargetClass();
 			current = getSingletonTarget(current);

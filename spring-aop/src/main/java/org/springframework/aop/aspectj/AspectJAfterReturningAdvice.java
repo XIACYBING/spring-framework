@@ -62,7 +62,9 @@ public class AspectJAfterReturningAdvice extends AbstractAspectJAdvice
 
 	@Override
 	public void afterReturning(@Nullable Object returnValue, Method method, Object[] args, @Nullable Object target) throws Throwable {
+		// 判断是否应该调用@AfterReturning的通知方法
 		if (shouldInvokeOnReturnValueOf(method, returnValue)) {
+			// 调用通知方法
 			invokeAdviceMethod(getJoinPointMatch(), returnValue, null);
 		}
 	}
@@ -77,9 +79,13 @@ public class AspectJAfterReturningAdvice extends AbstractAspectJAdvice
 	 * @return whether to invoke the advice method for the given return value
 	 */
 	private boolean shouldInvokeOnReturnValueOf(Method method, @Nullable Object returnValue) {
+		// 获取通知方法中的返回参数类型 todo 后续需测试一下确认是不是这样
 		Class<?> type = getDiscoveredReturningType();
+		// 获取返回的泛型类型
+		// todo 是否是只有在泛型为返回类型时，genericType才会不为空？
 		Type genericType = getDiscoveredReturningGenericType();
 		// If we aren't dealing with a raw type, check if generic parameters are assignable.
+		// 先判断方法实际的返回是否是type的实例， todo 再判断方法的泛型？
 		return (matchesReturnValue(type, method, returnValue) &&
 				(genericType == null || genericType == type ||
 						TypeUtils.isAssignable(genericType, method.getGenericReturnType())));
@@ -97,12 +103,15 @@ public class AspectJAfterReturningAdvice extends AbstractAspectJAdvice
 	 */
 	private boolean matchesReturnValue(Class<?> type, Method method, @Nullable Object returnValue) {
 		if (returnValue != null) {
+			// 如果returnValue是type的同类/子类，则返回true
 			return ClassUtils.isAssignableValue(type, returnValue);
 		}
 		else if (Object.class == type && void.class == method.getReturnType()) {
+			// 如果type是Object类型，然后方法的实际返回类型是void，也返回true
 			return true;
 		}
 		else {
+			// 否则判断方法的返回类型是否type的同类/子类
 			return ClassUtils.isAssignable(type, method.getReturnType());
 		}
 	}
