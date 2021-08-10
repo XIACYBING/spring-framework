@@ -466,11 +466,17 @@ public class AdvisedSupport extends ProxyConfig implements Advised {
 	 * @return a List of MethodInterceptors (may also include InterceptorAndDynamicMethodMatchers)
 	 */
 	public List<Object> getInterceptorsAndDynamicInterceptionAdvice(Method method, @Nullable Class<?> targetClass) {
+		// 包装方法成key，包装后在hashCode和equal上的效率较高
 		MethodCacheKey cacheKey = new MethodCacheKey(method);
+		// 获取该方法已缓存的调用其链
 		List<Object> cached = this.methodCache.get(cacheKey);
+		// 如果为空，则为第一次获取
 		if (cached == null) {
+			// 到增强器链工厂中获取
 			cached = this.advisorChainFactory.getInterceptorsAndDynamicInterceptionAdvice(
 					this, method, targetClass);
+
+			// 获取完成后设置到methodCache中
 			this.methodCache.put(cacheKey, cached);
 		}
 		return cached;

@@ -540,14 +540,18 @@ public abstract class ClassUtils {
 	public static boolean isAssignable(Class<?> lhsType, Class<?> rhsType) {
 		Assert.notNull(lhsType, "Left-hand side type must not be null");
 		Assert.notNull(rhsType, "Right-hand side type must not be null");
+		// 如果是lhs是rhs的同类/父类/接口，则返回true
 		if (lhsType.isAssignableFrom(rhsType)) {
 			return true;
 		}
+		// 如果lhs是基础类型
 		if (lhsType.isPrimitive()) {
+			// 则获取rhs的基础类型（如果存在的话），然后返回比较结果
 			Class<?> resolvedPrimitive = primitiveWrapperTypeMap.get(rhsType);
 			return (lhsType == resolvedPrimitive);
 		}
 		else {
+			// 否则则判断rhs是基础数据类型，获取它的包装类型，然后和lhs比较
 			Class<?> resolvedWrapper = primitiveTypeToWrapperMap.get(rhsType);
 			return (resolvedWrapper != null && lhsType.isAssignableFrom(resolvedWrapper));
 		}
@@ -563,6 +567,7 @@ public abstract class ClassUtils {
 	 */
 	public static boolean isAssignableValue(Class<?> type, @Nullable Object value) {
 		Assert.notNull(type, "Type must not be null");
+		// 判断value是否是type的实例/子类
 		return (value != null ? isAssignable(type, value.getClass()) : !type.isPrimitive());
 	}
 

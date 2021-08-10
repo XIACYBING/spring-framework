@@ -58,6 +58,27 @@ import org.springframework.util.StringUtils;
  * @author Juergen Hoeller
  * @author Ramnivas Laddad
  * @since 2.0
+ * 关于AOP通知方法的执行顺序，分为以下两种情况说明
+ * 只有一个切面：
+ * before of around -> before -> method -> after of around -> after -> afterReturning(normal)
+ * 												                    -> afterThrowing(exception)
+ *
+ * 存在多个切面（以两个切面做说明）：
+ * before of around1 -> before1
+ *     -> before of around2 -> before2
+ *         -> method
+ *     -> after of around2 -> after2 -> afterReturning2/afterThrowing2
+ * -> after of around1 -> after1 -> afterReturning1/afterThrowing1
+ *
+ * 注意点：
+ * 		1.切面顺序可有@Order注解指定
+ * 		2.一个切面内定义多个同样的通知方法（比如定义两个Before），执行顺序无法指定
+ * 		3.对于Around通知，必须在方法内显式调用proceedJoinPoint.proceed()，否则Before通知不生效
+ *
+ * 参考资料：
+ * 		<a href="https://blog.csdn.net/rainbow702/article/details/52185827">Spring AOP @Before @Around @After 等 advice 的执行顺序</a>
+ * 		<a href="https://docs.spring.io/spring-framework/docs/current/reference/html/core.html#aop-ataspectj-advice-ordering">Advice Ordering</a>
+ *
  */
 @SuppressWarnings("serial")
 public abstract class AbstractAspectJAdvice implements Advice, AspectJPrecedenceInformation, Serializable {
@@ -367,6 +388,12 @@ public abstract class AbstractAspectJAdvice implements Advice, AspectJPrecedence
 	 * value. We need to calculate which advice parameter needs to be bound
 	 * to which argument name. There are multiple strategies for determining
 	 * this binding, which are arranged in a ChainOfResponsibility.
+	 * 翻译：作为设置的一部分，尽可能多地做一些工作，以便在后续通知调用上的参数绑定可以尽可能快。
+	 * <p>如果第一个参数是 JoinPoint 或 ProceedingJoinPoint 类型，那么我们在该位置
+	 * 传递一个 JoinPoint（ProceedingJoinPoint 用于环绕建议）。 <p>如果第一个参数是
+	 * {@code JoinPoint.StaticPart} 类型，那么我们在那个位置传递一个 {@code JoinPoint.StaticPart}。
+	 * <p>剩余参数必须由给定连接点处的切入点计算约束。我们将返回一个从参数名称到值的映射。
+	 * 我们需要计算哪个通知参数需要绑定到哪个参数名称。确定此绑定有多种策略，它们排列在 ChainOfResponsibility 中。
 	 */
 	public final synchronized void calculateArgumentBindings() {
 		// The simple case... nothing to bind.
@@ -543,6 +570,7 @@ public abstract class AbstractAspectJAdvice implements Advice, AspectJPrecedence
 	/**
 	 * Take the arguments at the method execution join point and output a set of arguments
 	 * to the advice method.
+	 * 翻译：在方法执行连接点获取参数并将一组参数输出到通知方法。
 	 * @param jp the current JoinPoint
 	 * @param jpMatch the join point match that matched this execution join point
 	 * @param returnValue the return value from the method execution (may be null)
@@ -552,21 +580,27 @@ public abstract class AbstractAspectJAdvice implements Advice, AspectJPrecedence
 	protected Object[] argBinding(JoinPoint jp, @Nullable JoinPointMatch jpMatch,
 			@Nullable Object returnValue, @Nullable Throwable ex) {
 
+		// 计算参数绑定的相关内容
 		calculateArgumentBindings();
 
 		// AMC start
+		// 实例化一个通知方法的参数数组
 		Object[] adviceInvocationArgs = new Object[this.parameterTypes.length];
 		int numBound = 0;
 
+		// 切点参数索引从-1开始，如果非-1，则绑定joinPoint到第一个参数位置
 		if (this.joinPointArgumentIndex != -1) {
 			adviceInvocationArgs[this.joinPointArgumentIndex] = jp;
 			numBound++;
 		}
 		else if (this.joinPointStaticPartArgumentIndex != -1) {
+			// 否则绑定staticPart到第一个位置
 			adviceInvocationArgs[this.joinPointStaticPartArgumentIndex] = jp.getStaticPart();
 			numBound++;
 		}
 
+		// 在calculateArgumentBindings方法中计算了相关的参数，如果不为空，则进行通知方法的参数绑定
+		// todo 余下的先略过，总之此处就是将切点方法的参数获取一份，在需要的情况下绑定到通知方法上
 		if (!CollectionUtils.isEmpty(this.argumentBindings)) {
 			// binding from pointcut match
 			if (jpMatch != null) {
@@ -614,6 +648,7 @@ public abstract class AbstractAspectJAdvice implements Advice, AspectJPrecedence
 			@Nullable JoinPointMatch jpMatch, @Nullable Object returnValue, @Nullable Throwable ex)
 			throws Throwable {
 
+		// 参数绑定后进行方法调用
 		return invokeAdviceMethodWithGivenArgs(argBinding(getJoinPoint(), jpMatch, returnValue, ex));
 	}
 
@@ -621,6 +656,7 @@ public abstract class AbstractAspectJAdvice implements Advice, AspectJPrecedence
 	protected Object invokeAdviceMethod(JoinPoint jp, @Nullable JoinPointMatch jpMatch,
 			@Nullable Object returnValue, @Nullable Throwable t) throws Throwable {
 
+		// 根据给定的参数调用通知的方法
 		return invokeAdviceMethodWithGivenArgs(argBinding(jp, jpMatch, returnValue, t));
 	}
 
@@ -631,6 +667,7 @@ public abstract class AbstractAspectJAdvice implements Advice, AspectJPrecedence
 		}
 		try {
 			ReflectionUtils.makeAccessible(this.aspectJAdviceMethod);
+			// 调用通知的方法，并返回结果（如果是Around的方法，则相关逻辑是在通知方法里面做完的）
 			return this.aspectJAdviceMethod.invoke(this.aspectInstanceFactory.getAspectInstance(), actualArgs);
 		}
 		catch (IllegalArgumentException ex) {
@@ -655,6 +692,7 @@ public abstract class AbstractAspectJAdvice implements Advice, AspectJPrecedence
 	 */
 	@Nullable
 	protected JoinPointMatch getJoinPointMatch() {
+		// 获取当前的方法调用器
 		MethodInvocation mi = ExposeInvocationInterceptor.currentInvocation();
 		if (!(mi instanceof ProxyMethodInvocation)) {
 			throw new IllegalStateException("MethodInvocation is not a Spring ProxyMethodInvocation: " + mi);
