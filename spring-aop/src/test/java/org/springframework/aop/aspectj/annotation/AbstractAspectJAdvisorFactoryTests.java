@@ -23,6 +23,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.aspectj.lang.JoinPoint;
@@ -57,6 +58,7 @@ import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.util.ObjectUtils;
 
+import static org.assertj.core.api.Assertions.as;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
@@ -509,6 +511,7 @@ abstract class AbstractAspectJAdvisorFactoryTests {
 
 	@Test
 	void afterAdviceTypes() throws Exception {
+		// AOP切面顺序测试类
 		InvocationTrackingAspect aspect = new InvocationTrackingAspect();
 		List<Advisor> advisors = getFixture().getAdvisors(
 				new SingletonMetadataAwareAspectInstanceFactory(aspect, "exceptionHandlingAspect"));
@@ -521,6 +524,38 @@ abstract class AbstractAspectJAdvisorFactoryTests {
 		aspect.invocations.clear();
 		assertThatExceptionOfType(FileNotFoundException.class).isThrownBy(() -> echo.echo(new FileNotFoundException()));
 		assertThat(aspect.invocations).containsExactly("around - start", "before", "after throwing", "after", "around - end");
+	}
+
+	@Test
+	void nestedAdviceOrder() throws Exception {
+		// 多切面嵌套通知顺序
+		InvocationTrackingOrderAspect aspectOne = new InvocationTrackingOrderAspect(1);
+		InvocationTrackingOrderAspect aspectTwo = new InvocationTrackingOrderAspect(2);
+
+		List<Advisor> advisorsOne = getFixture()
+				.getAdvisors(new SingletonMetadataAwareAspectInstanceFactory(aspectOne, "trackingOrderAspectOne"));
+		List<Advisor> advisorsTwo = getFixture()
+				.getAdvisors(new SingletonMetadataAwareAspectInstanceFactory(aspectTwo, "trackingOrderAspectTwo"));
+
+		advisorsOne.addAll(advisorsTwo);
+
+		Echo echo = (Echo)createProxy(new Echo(), advisorsOne, Echo.class);
+
+		assertThat(InvocationTrackingOrderAspect.invocationMsg).isEmpty();
+		assertThat(echo.echo(42)).isEqualTo(42);
+		assertThat(InvocationTrackingOrderAspect.invocationMsg)
+				.containsExactly("around - 1 - start", "before - 1",
+						"around - 2 - start", "before - 2", "after returning - 2", "after - 2", "around - 2 - end",
+						"after returning - 1", "after - 1", "around - 1 - end");
+		System.out.println("初次通知：" + Arrays.toString(InvocationTrackingOrderAspect.invocationMsg.toArray(new String[0])));
+
+		InvocationTrackingOrderAspect.invocationMsg.clear();
+		assertThatExceptionOfType(FileNotFoundException.class).isThrownBy(() -> echo.echo(new FileNotFoundException()));
+		assertThat(InvocationTrackingOrderAspect.invocationMsg)
+				.containsExactly("around - 1 - start", "before - 1",
+						"around - 2 - start", "before - 2", "after throwing - 2", "after - 2", "around - 2 - end",
+						"after throwing - 1", "after - 1", "around - 1 - end");
+		System.out.println("二次通知：" + Arrays.toString(InvocationTrackingOrderAspect.invocationMsg.toArray(new String[0])));
 	}
 
 	@Test
@@ -764,6 +799,54 @@ abstract class AbstractAspectJAdvisorFactoryTests {
 			}
 			return o;
 		}
+	}
+
+	@Aspect
+	private static class InvocationTrackingOrderAspect {
+
+		static List<String> invocationMsg = new ArrayList<>();
+
+		final int aspectOrder;
+
+		public InvocationTrackingOrderAspect(int order) {
+			aspectOrder = order;
+		}
+
+		@Pointcut("execution(* echo(*))")
+		void echo() {
+		}
+
+		@Around("echo()")
+		Object around(ProceedingJoinPoint joinPoint) throws Throwable {
+			invocationMsg.add(String.format("around - %d - start", aspectOrder));
+			try {
+				return joinPoint.proceed();
+			}
+			finally {
+				invocationMsg.add(String.format("around - %d - end", aspectOrder));
+			}
+		}
+
+		@Before("echo()")
+		void before() {
+			invocationMsg.add(String.format("before - %d", aspectOrder));
+		}
+
+		@AfterReturning("echo()")
+		void afterReturning() {
+			invocationMsg.add(String.format("after returning - %d", aspectOrder));
+		}
+
+		@AfterThrowing("echo()")
+		void afterThrowing() {
+			invocationMsg.add(String.format("after throwing - %d", aspectOrder));
+		}
+
+		@After("echo()")
+		void after() {
+			invocationMsg.add(String.format("after - %d", aspectOrder));
+		}
+
 	}
 
 
