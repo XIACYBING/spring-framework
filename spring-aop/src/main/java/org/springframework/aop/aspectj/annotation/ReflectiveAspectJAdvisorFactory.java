@@ -79,6 +79,7 @@ public class ReflectiveAspectJAdvisorFactory extends AbstractAspectJAdvisorFacto
 		// invokes proceed() in a `try` block and only invokes the @After advice method
 		// in a corresponding `finally` block.
 		// 根据以上注释，After虽然在倒数第三位，但是AfterReturning是在它之前调用的，AfterThrowing可能在它之前调用
+		// 根据切面内容确认，After方法是在finally中被调用的，AfterThrowing是在catch块中被调用的，而AfterReturning是正常调用
 		Comparator<Method> adviceKindComparator = new ConvertingComparator<>(
 				// 顺序即大小，越小的越应该靠前
 				new InstanceComparator<>(
@@ -152,7 +153,7 @@ public class ReflectiveAspectJAdvisorFactory extends AbstractAspectJAdvisorFacto
 		}
 
 		// If it's a per target aspect, emit the dummy instantiating aspect.
-		// 如果增强器集合不为空谋求额偶尔u照顾了增强延迟初始化，则需要在首位加入同步实例化增强器
+		// 如果增强器集合不为空且配置了增强延迟初始化，则需要在首位加入同步实例化增强器
 		// todo 作用是什么？
 		if (!advisors.isEmpty() && lazySingletonAspectInstanceFactory.getAspectMetadata().isLazilyInstantiated()) {
 			Advisor instantiationAdvisor = new SyntheticInstantiationAdvisor(lazySingletonAspectInstanceFactory);

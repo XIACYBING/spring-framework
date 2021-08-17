@@ -79,6 +79,16 @@ import org.springframework.util.StringUtils;
  * 		<a href="https://blog.csdn.net/rainbow702/article/details/52185827">Spring AOP @Before @Around @After 等 advice 的执行顺序</a>
  * 		<a href="https://docs.spring.io/spring-framework/docs/current/reference/html/core.html#aop-ataspectj-advice-ordering">Advice Ordering</a>
  *
+ * 博客太旧，经过确认，实际的顺序中，应该参考{@link org.springframework.aop.aspectj.annotation.AbstractAspectJAdvisorFactoryTests#afterAdviceTypes()}测试
+ * before of around -> before -> method -> afterReturning(normal) -> after -> after of around
+ * 										-> afterThrowing(exception)
+ *
+ *
+ * before of around1 -> before1
+ *     -> before of around2 -> before2
+ *         -> method
+ *     -> afterReturning2/afterThrowing2 -> after2 -> after of around2
+ * -> afterReturning1/afterThrowing1 -> after1 -> after of around1
  */
 @SuppressWarnings("serial")
 public abstract class AbstractAspectJAdvice implements Advice, AspectJPrecedenceInformation, Serializable {
