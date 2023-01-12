@@ -1,0 +1,24 @@
+plugins {
+    id 'java'
+}
+
+group 'org.springframework'
+version '5.3.9-SNAPSHOT'
+
+repositories {
+    maven {url 'file:///D:/AppData/maven/repository'}
+    mavenLocal()
+    maven { name "Alibaba" ; url "https://maven.aliyun.com/repository/public/" }
+    maven { name "Bstek" ; url "http://nexus.bsdn.org/content/groups/public/" ; allowInsecureProtocol = true }
+    mavenCentral()
+}
+
+dependencies {
+    compile(project(":spring-context"))
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.2'
+}
+
+test {
+    useJUnitPlatform()
+}
