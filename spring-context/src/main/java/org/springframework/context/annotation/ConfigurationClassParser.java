@@ -167,9 +167,13 @@ class ConfigurationClassParser {
 
 
 	public void parse(Set<BeanDefinitionHolder> configCandidates) {
+
+		// configCandidates是一堆被@Configuration标记的BeanDefinition
 		for (BeanDefinitionHolder holder : configCandidates) {
 			BeanDefinition bd = holder.getBeanDefinition();
 			try {
+
+				// 不同的BeanDefinition走不同的解析链路
 				if (bd instanceof AnnotatedBeanDefinition) {
 					parse(((AnnotatedBeanDefinition) bd).getMetadata(), holder.getBeanName());
 				}
@@ -203,6 +207,8 @@ class ConfigurationClassParser {
 	}
 
 	protected final void parse(AnnotationMetadata metadata, String beanName) throws IOException {
+
+		// 处理配置类，不处理被默认过滤器过滤掉的配置，被过滤掉的会在其他流程中处理
 		processConfigurationClass(new ConfigurationClass(metadata, beanName), DEFAULT_EXCLUSION_FILTER);
 	}
 
@@ -222,19 +228,28 @@ class ConfigurationClassParser {
 
 
 	protected void processConfigurationClass(ConfigurationClass configClass, Predicate<String> filter) throws IOException {
+
+		// 跳过某些需要跳过的
 		if (this.conditionEvaluator.shouldSkip(configClass.getMetadata(), ConfigurationPhase.PARSE_CONFIGURATION)) {
 			return;
 		}
 
+		// 根据configClass获取是否有已存在的ConfigClass，hashcode是配置类的ClassName的hashcode
 		ConfigurationClass existingClass = this.configurationClasses.get(configClass);
 		if (existingClass != null) {
 			if (configClass.isImported()) {
 				if (existingClass.isImported()) {
+
+					// 如果当前配置类已经被处理过，且已存在的配置类和当前配置类都是通过Import导入的，那就合并两者
 					existingClass.mergeImportedBy(configClass);
 				}
+
+				// 只要已存在对应的configClass，且当前要处理的configClass是导入的，当前流程就无需处理了，已经被处理过了
 				// Otherwise ignore new imported config class; existing non-imported class overrides it.
 				return;
 			}
+
+			// 如果当前configClass是显式配置的，那么移除原来的configClass，开始处理当前的configClass
 			else {
 				// Explicit bean definition found, probably replacing an import.
 				// Let's remove the old one and go with the new one.
@@ -246,6 +261,8 @@ class ConfigurationClassParser {
 		// Recursively process the configuration class and its superclass hierarchy.
 		SourceClass sourceClass = asSourceClass(configClass, filter);
 		do {
+
+			// 处理配置的Configuration，souceClass表示对应的配置类，比如ProviderApplication
 			sourceClass = doProcessConfigurationClass(configClass, sourceClass, filter);
 		}
 		while (sourceClass != null);

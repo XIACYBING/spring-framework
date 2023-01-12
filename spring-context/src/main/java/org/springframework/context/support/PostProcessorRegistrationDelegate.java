@@ -93,6 +93,8 @@ final class PostProcessorRegistrationDelegate {
 			}
 			sortPostProcessors(currentRegistryProcessors, beanFactory);
 			registryProcessors.addAll(currentRegistryProcessors);
+
+			// 调用注册处理器/RegistryProcess
 			invokeBeanDefinitionRegistryPostProcessors(currentRegistryProcessors, registry);
 			currentRegistryProcessors.clear();
 
@@ -277,6 +279,8 @@ final class PostProcessorRegistrationDelegate {
 			Collection<? extends BeanDefinitionRegistryPostProcessor> postProcessors, BeanDefinitionRegistry registry) {
 
 		for (BeanDefinitionRegistryPostProcessor postProcessor : postProcessors) {
+
+			// 处理BeanDefinition的注册，大部分Bean的注册是在ConfigurationClassPostProcessor中处理的
 			postProcessor.postProcessBeanDefinitionRegistry(registry);
 		}
 	}
