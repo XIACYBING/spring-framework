@@ -9,7 +9,7 @@ repositories {
     maven {url 'file:///D:/AppData/maven/repository'}
     mavenLocal()
     maven { name "Alibaba" ; url "https://maven.aliyun.com/repository/public/" }
-    maven { name "Bstek" ; url "http://nexus.bsdn.org/content/groups/public/" ; allowInsecureProtocol = true }
+    maven { name "Bstek" ; url "http://nexus.bsdn.org/content/groups/public/"}
     mavenCentral()
 }
 

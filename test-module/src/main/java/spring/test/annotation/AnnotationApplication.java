@@ -1,4 +1,4 @@
-package spring.test;
+package spring.test.annotation;
 
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.ComponentScan;

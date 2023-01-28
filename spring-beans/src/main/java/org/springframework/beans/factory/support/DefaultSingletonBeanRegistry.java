@@ -16,16 +16,6 @@
 
 package org.springframework.beans.factory.support;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-
 import org.springframework.beans.factory.BeanCreationException;
 import org.springframework.beans.factory.BeanCreationNotAllowedException;
 import org.springframework.beans.factory.BeanCurrentlyInCreationException;
@@ -36,6 +26,16 @@ import org.springframework.core.SimpleAliasRegistry;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Generic registry for shared bean instances, implementing the
@@ -178,12 +178,26 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 	 */
 	@Nullable
 	protected Object getSingleton(String beanName, boolean allowEarlyReference) {
+
+		// 获取bean单例
 		Object singletonObject = this.singletonObjects.get(beanName);
+
+		// 如果没有bean单例，且bean在创建中，则从二级和三级缓存中获取
 		if (singletonObject == null && isSingletonCurrentlyInCreation(beanName)) {
+
+			// 单例加锁，避免在获取时其他途径初始化对应bean单例
 			synchronized (this.singletonObjects) {
+
+				// 获取二级缓存（已实例化（可能也已经被代理），但未注入属性）
 				singletonObject = this.earlySingletonObjects.get(beanName);
+
+				// 二级缓存为空，且allowEarlyReference为true，则从三级缓存中获取
 				if (singletonObject == null && allowEarlyReference) {
+
+					// 三级缓存中获取对应bean的ObjectFactory
 					ObjectFactory<?> singletonFactory = this.singletonFactories.get(beanName);
+
+					// 对应的ObjectFactory不为空时，调用getObject获取，在循环依赖场景中，调用getObject时会
 					if (singletonFactory != null) {
 						singletonObject = singletonFactory.getObject();
 						this.earlySingletonObjects.put(beanName, singletonObject);
@@ -205,7 +219,11 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 	 */
 	public Object getSingleton(String beanName, ObjectFactory<?> singletonFactory) {
 		Assert.notNull(beanName, "Bean name must not be null");
+
+		// 单例对象集合加锁，避免冲突
 		synchronized (this.singletonObjects) {
+
+			// 单例集合中获取对应bean，如果没有则需要创建
 			Object singletonObject = this.singletonObjects.get(beanName);
 			if (singletonObject == null) {
 				if (this.singletonsCurrentlyInDestruction) {
@@ -216,6 +234,9 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 				if (logger.isDebugEnabled()) {
 					logger.debug("Creating shared instance of singleton bean '" + beanName + "'");
 				}
+
+				// 创建前的校验，比如在此处会将beanName加入singletonsCurrentlyInCreation中，然后在后面的doCreatBean方法中判断beanName
+				// 在创建中时，会将实例化完成的bean加入三级缓存中，方便循环依赖场景的处理
 				beforeSingletonCreation(beanName);
 				boolean newSingleton = false;
 				boolean recordSuppressedExceptions = (this.suppressedExceptions == null);
@@ -223,6 +244,8 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 					this.suppressedExceptions = new LinkedHashSet<>();
 				}
 				try {
+
+					// 从ObjectFactory中获取对应对象
 					singletonObject = singletonFactory.getObject();
 					newSingleton = true;
 				}
@@ -246,8 +269,12 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 					if (recordSuppressedExceptions) {
 						this.suppressedExceptions = null;
 					}
+
+					// 对象创建后的处理
 					afterSingletonCreation(beanName);
 				}
+
+				// 加入单例对象集合中，此处加入单例对象集合中的bean，是已经在doCraeteBean中注入属性，且初始化完成的bean
 				if (newSingleton) {
 					addSingleton(beanName, singletonObject);
 				}
@@ -397,6 +424,8 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 	}
 
 	/**
+	 * 注册beanName和依赖的dependentBeanName的关系，方便后续销毁时查询
+	 *
 	 * Register a dependent bean for the given bean,
 	 * to be destroyed before the given bean is destroyed.
 	 * @param beanName the name of the bean

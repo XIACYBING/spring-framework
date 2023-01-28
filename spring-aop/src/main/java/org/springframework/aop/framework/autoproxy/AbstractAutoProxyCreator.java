@@ -36,6 +36,7 @@ import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.beans.factory.config.SmartInstantiationAwareBeanPostProcessor;
+import org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
@@ -236,6 +237,9 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 	public Object getEarlyBeanReference(Object bean, String beanName) {
 		Object cacheKey = getCacheKey(bean.getClass(), beanName);
 		this.earlyProxyReferences.put(cacheKey, bean);
+
+		// 如果bean依赖之间存在循环依赖，例：A依赖B，B依赖A，先初始化A，
+		// 那么B在注入A属性时，会调用当前方法将A的对象进行包装，然后注入到B中，避免注入到B中的对象是个原始对象
 		return wrapIfNecessary(bean, beanName, cacheKey);
 	}
 
@@ -339,6 +343,8 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 	 * @param beanName the name of the bean
 	 * @param cacheKey the cache key for metadata access
 	 * @return a proxy wrapping the bean, or the raw bean instance as-is
+	 * <NOTE>此处传入的bean，可能是刚实例化完成，未进行任何属性注入和初始化的bean（循环依赖{@link AbstractAutowireCapableBeanFactory#getEarlyBeanReference}），
+	 * 也可能是一个完整的bean</NOTE>
 	 */
 	protected Object wrapIfNecessary(Object bean, String beanName, Object cacheKey) {
 		// 在before中处理过，如果是已经生成过代理的，则会将beanName放入targetSourcedBeans中，在after中自然不需要处理
