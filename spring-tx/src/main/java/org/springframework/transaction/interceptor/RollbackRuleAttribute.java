@@ -16,10 +16,10 @@
 
 package org.springframework.transaction.interceptor;
 
-import java.io.Serializable;
-
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
+
+import java.io.Serializable;
 
 /**
  * Rule determining whether or not a given exception (and any subclasses)
@@ -112,14 +112,22 @@ public class RollbackRuleAttribute implements Serializable{
 
 
 	private int getDepth(Class<?> exceptionClass, int depth) {
+
+		// 使用抛出异常的全链路名称，匹配配置的异常名称，如果匹配的上，则直接返回depth
+		// 这里会有一个问题，配置的回滚/不回滚异常是XXXException，抛出的异常是XXXExceptionA，这是会被匹配上的
+		// <a href="https://mp.weixin.qq.com/s/ERsDSEB1UK4j_Ao9M3hyKQ">why技术-发现Spring事务的一个实锤bug，官方还拒不承认？你来评评理..</a>
 		if (exceptionClass.getName().contains(this.exceptionName)) {
 			// Found it!
 			return depth;
 		}
+
+		// 如果抛出的是Throwable且规则没匹配上，或者一直没有匹配上，递归到了Throwable，那么直接返回-1
 		// If we've gone as far as we can go and haven't found it...
 		if (exceptionClass == Throwable.class) {
 			return -1;
 		}
+
+		// 获取抛出异常的父类，递归判断
 		return getDepth(exceptionClass.getSuperclass(), depth + 1);
 	}
 

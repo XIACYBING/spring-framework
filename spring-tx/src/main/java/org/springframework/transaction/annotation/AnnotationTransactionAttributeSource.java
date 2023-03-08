@@ -16,6 +16,12 @@
 
 package org.springframework.transaction.annotation;
 
+import org.springframework.lang.Nullable;
+import org.springframework.transaction.interceptor.AbstractFallbackTransactionAttributeSource;
+import org.springframework.transaction.interceptor.TransactionAttribute;
+import org.springframework.util.Assert;
+import org.springframework.util.ClassUtils;
+
 import java.io.Serializable;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Method;
@@ -23,12 +29,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
-
-import org.springframework.lang.Nullable;
-import org.springframework.transaction.interceptor.AbstractFallbackTransactionAttributeSource;
-import org.springframework.transaction.interceptor.TransactionAttribute;
-import org.springframework.util.Assert;
-import org.springframework.util.ClassUtils;
 
 /**
  * Implementation of the
@@ -156,6 +156,8 @@ public class AnnotationTransactionAttributeSource extends AbstractFallbackTransa
 	@Override
 	@Nullable
 	protected TransactionAttribute findTransactionAttribute(Method method) {
+
+		// 从方法上获取事务属性
 		return determineTransactionAttribute(method);
 	}
 
@@ -166,17 +168,26 @@ public class AnnotationTransactionAttributeSource extends AbstractFallbackTransa
 	 * for parsing known annotations into Spring's metadata attribute class.
 	 * Returns {@code null} if it's not transactional.
 	 * <p>Can be overridden to support custom annotations that carry transaction metadata.
-	 * @param element the annotated method or class
+	 * @param element the annotated method or class（声明的Method或Class）
 	 * @return the configured transaction attribute, or {@code null} if none was found
 	 */
 	@Nullable
 	protected TransactionAttribute determineTransactionAttribute(AnnotatedElement element) {
+
+		// 循环注解转换器，获取事务属性
 		for (TransactionAnnotationParser parser : this.annotationParsers) {
+
+			// 使用当前转换器获取属性
+			// @Transactional：SpringTransactionAnnotationParser.parseTransactionAnnotation
 			TransactionAttribute attr = parser.parseTransactionAnnotation(element);
+
+			// 如果有事务属性，则直接返回
 			if (attr != null) {
 				return attr;
 			}
 		}
+
+		// 都没有，就返回空
 		return null;
 	}
 

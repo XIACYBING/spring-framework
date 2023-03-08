@@ -16,11 +16,6 @@
 
 package org.springframework.transaction.annotation;
 
-import java.io.Serializable;
-import java.lang.reflect.AnnotatedElement;
-import java.util.ArrayList;
-import java.util.List;
-
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.annotation.AnnotationAttributes;
 import org.springframework.core.annotation.AnnotationUtils;
@@ -29,6 +24,11 @@ import org.springframework.transaction.interceptor.NoRollbackRuleAttribute;
 import org.springframework.transaction.interceptor.RollbackRuleAttribute;
 import org.springframework.transaction.interceptor.RuleBasedTransactionAttribute;
 import org.springframework.transaction.interceptor.TransactionAttribute;
+
+import java.io.Serializable;
+import java.lang.reflect.AnnotatedElement;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Strategy implementation for parsing Spring's {@link Transactional} annotation.
@@ -47,8 +47,12 @@ public class SpringTransactionAnnotationParser implements TransactionAnnotationP
 	@Override
 	@Nullable
 	public TransactionAttribute parseTransactionAnnotation(AnnotatedElement element) {
+
+		// 从当前element（可能是Class或Method）上获取@Transactional注解的属性
 		AnnotationAttributes attributes = AnnotatedElementUtils.findMergedAnnotationAttributes(
 				element, Transactional.class, false, false);
+
+		// 如果有注解，则将注解属性转换为事务属性
 		if (attributes != null) {
 			return parseTransactionAnnotation(attributes);
 		}
@@ -62,29 +66,51 @@ public class SpringTransactionAnnotationParser implements TransactionAnnotationP
 	}
 
 	protected TransactionAttribute parseTransactionAnnotation(AnnotationAttributes attributes) {
+
+		// 新建基于规则的事务属性
 		RuleBasedTransactionAttribute rbta = new RuleBasedTransactionAttribute();
 
+		// 事务传播属性设置
 		Propagation propagation = attributes.getEnum("propagation");
 		rbta.setPropagationBehavior(propagation.value());
+
+		// 事务隔离属性设置
 		Isolation isolation = attributes.getEnum("isolation");
 		rbta.setIsolationLevel(isolation.value());
+
+		// 事务超时属性设置
 		rbta.setTimeout(attributes.getNumber("timeout").intValue());
+
+		// 只读事务属性设置
 		rbta.setReadOnly(attributes.getBoolean("readOnly"));
+
+		// 事务管理器指定属性设置
 		rbta.setQualifier(attributes.getString("value"));
 
+		// 回滚规则设置
 		List<RollbackRuleAttribute> rollbackRules = new ArrayList<>();
+
+		// 基于Class的回滚规则设置
 		for (Class<?> rbRule : attributes.getClassArray("rollbackFor")) {
 			rollbackRules.add(new RollbackRuleAttribute(rbRule));
 		}
+
+		// 基于ClassName的回滚规则设置
 		for (String rbRule : attributes.getStringArray("rollbackForClassName")) {
 			rollbackRules.add(new RollbackRuleAttribute(rbRule));
 		}
+
+		// 基于Class的不回滚规则设置
 		for (Class<?> rbRule : attributes.getClassArray("noRollbackFor")) {
 			rollbackRules.add(new NoRollbackRuleAttribute(rbRule));
 		}
+
+		// 基于ClassName的不回滚规则设置
 		for (String rbRule : attributes.getStringArray("noRollbackForClassName")) {
 			rollbackRules.add(new NoRollbackRuleAttribute(rbRule));
 		}
+
+		// 回滚规则设置
 		rbta.setRollbackRules(rollbackRules);
 
 		return rbta;

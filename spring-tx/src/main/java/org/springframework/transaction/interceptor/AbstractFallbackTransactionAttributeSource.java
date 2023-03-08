@@ -16,18 +16,17 @@
 
 package org.springframework.transaction.interceptor;
 
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
 import org.springframework.aop.support.AopUtils;
 import org.springframework.core.MethodClassKey;
 import org.springframework.lang.Nullable;
 import org.springframework.util.ClassUtils;
+
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Abstract implementation of {@link TransactionAttributeSource} that caches
@@ -94,6 +93,8 @@ public abstract class AbstractFallbackTransactionAttributeSource implements Tran
 			return null;
 		}
 
+		// 获取已缓存的事务属性
+		// 当前方法在进行切面包装时会被调用一次，那时候就会将事务属性计算完成并缓存起来
 		// First, see if we have a cached value.
 		Object cacheKey = getCacheKey(method, targetClass);
 		TransactionAttribute cached = this.attributeCache.get(cacheKey);
@@ -108,20 +109,32 @@ public abstract class AbstractFallbackTransactionAttributeSource implements Tran
 			}
 		}
 		else {
+
+			// 计算事务属性
 			// We need to work it out.
 			TransactionAttribute txAttr = computeTransactionAttribute(method, targetClass);
+
+			// 如果事务为空，则将计算结果放入缓存
 			// Put it in the cache.
 			if (txAttr == null) {
 				this.attributeCache.put(cacheKey, NULL_TRANSACTION_ATTRIBUTE);
 			}
+
+			// 如果事务属性不为空
 			else {
+
+				// 根据Class和Method获取全路径
 				String methodIdentification = ClassUtils.getQualifiedMethodName(method, targetClass);
+
+				// 设置全路径为descriptor，不太懂这个的作用
 				if (txAttr instanceof DefaultTransactionAttribute) {
 					((DefaultTransactionAttribute) txAttr).setDescriptor(methodIdentification);
 				}
 				if (logger.isTraceEnabled()) {
 					logger.trace("Adding transactional method '" + methodIdentification + "' with attribute: " + txAttr);
 				}
+
+				// 放入缓存中
 				this.attributeCache.put(cacheKey, txAttr);
 			}
 			return txAttr;
@@ -149,33 +162,49 @@ public abstract class AbstractFallbackTransactionAttributeSource implements Tran
 	 */
 	@Nullable
 	protected TransactionAttribute computeTransactionAttribute(Method method, @Nullable Class<?> targetClass) {
+
+		// 判断是否只允许public方法，且当前方法是否public
 		// Don't allow no-public methods as required.
 		if (allowPublicMethodsOnly() && !Modifier.isPublic(method.getModifiers())) {
 			return null;
 		}
 
+		// method可能只是接口上的method，所以需要获取当前方法在targetClass中的定义
 		// The method may be on an interface, but we need attributes from the target class.
 		// If the target class is null, the method will be unchanged.
 		Method specificMethod = AopUtils.getMostSpecificMethod(method, targetClass);
 
+		// 从方法上获取事务信息（从方法注解上获取）
+		// AnnotationTransactionAttributeSource.findTransactionAttribute(java.lang.reflect.Method)
 		// First try is the method in the target class.
 		TransactionAttribute txAttr = findTransactionAttribute(specificMethod);
+
+		// 如果有，直接返回
 		if (txAttr != null) {
 			return txAttr;
 		}
 
+		// 如果没有，我们从类上获取事务属性
+		// AnnotationTransactionAttributeSource.findTransactionAttribute(java.lang.Class<?>)
 		// Second try is the transaction attribute on the target class.
 		txAttr = findTransactionAttribute(specificMethod.getDeclaringClass());
+
+		// 如果有，直接返回
 		if (txAttr != null && ClassUtils.isUserLevelMethod(method)) {
 			return txAttr;
 		}
 
+		// 如果还没有获取到事务属性，且方法入参method和实际Class的实现Method不是同一个，则尝试从入参Method（父级Method）上获取事务属性
 		if (specificMethod != method) {
+
+			// 从父级Method获取事务属性，如果有，直接返回
 			// Fallback is to look at the original method.
 			txAttr = findTransactionAttribute(method);
 			if (txAttr != null) {
 				return txAttr;
 			}
+
+			// 从父级Method的Class上获取事务属性，如果有，直接返回
 			// Last fallback is the class of the original method.
 			txAttr = findTransactionAttribute(method.getDeclaringClass());
 			if (txAttr != null && ClassUtils.isUserLevelMethod(method)) {
@@ -183,6 +212,7 @@ public abstract class AbstractFallbackTransactionAttributeSource implements Tran
 			}
 		}
 
+		// 如果都没有，返回null
 		return null;
 	}
 

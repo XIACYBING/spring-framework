@@ -16,15 +16,14 @@
 
 package org.springframework.transaction.interceptor;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.springframework.lang.Nullable;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import org.springframework.lang.Nullable;
 
 /**
  * TransactionAttribute implementation that works out whether a given exception
@@ -138,10 +137,25 @@ public class RuleBasedTransactionAttribute extends DefaultTransactionAttribute i
 		int deepest = Integer.MAX_VALUE;
 
 		if (this.rollbackRules != null) {
+
+			// rollbackRules的顺序会影响到匹配的结果，比如BException和CException都继承了AException，
+			// 我在某个事务注解上指定@Transactional(rollbackFor = BException.class, noRollbackFor = CException.class)
+			// 此时如果rollbackFor的规则先于noRollbackFor，那么事务就会回滚，反之就不会回滚
+			// 从{@link #setRollbackRules}方法向上追踪，发现几处调用方，都是先处理rollbackFor，再处理noRollbackFor，所以在上述场景中，最终结果是回滚
 			for (RollbackRuleAttribute rule : this.rollbackRules) {
+
+				// depth字段代表抛出的异常在规则内的第几层，因为回滚异常和不会滚异常的匹配上，都会考虑到继承的异常，比如抛出的是RuntimeException，
+				// 指定回滚的异常是Exception，此时返回的depth是1，代表深度是2
 				int depth = rule.getDepth(ex);
+
+				// depth >= 0代表匹配到，还有可能返回-1，代表未匹配到
+				// depth < deepest，代表当前异常在当前规则中匹配到的深度，比之前匹配到的最小深度还要小，即优先级更高，更应该被应用
 				if (depth >= 0 && depth < deepest) {
+
+					// 将当前深度赋值给deepest，以便后续的规则匹配
 					deepest = depth;
+
+					// 设置当前规则为winner
 					winner = rule;
 				}
 			}
@@ -151,12 +165,15 @@ public class RuleBasedTransactionAttribute extends DefaultTransactionAttribute i
 			logger.trace("Winning rollback rule is: " + winner);
 		}
 
+		// 如果没有匹配到规则，则调用父级的rollbackOn：判断抛出的异常是否RuntimeException或Error
 		// User superclass behavior (rollback on unchecked) if no rule matches.
 		if (winner == null) {
 			logger.trace("No relevant rollback rule found: applying default rules");
 			return super.rollbackOn(ex);
 		}
 
+		// 不回滚规则会映射为NoRollbackRuleAttribute
+		// 如果winner是NoRollbackRuleAttribute，此处会返回false，代表不回滚，否则就回滚
 		return !(winner instanceof NoRollbackRuleAttribute);
 	}
 
