@@ -16,16 +16,16 @@
 
 package org.springframework.context.annotation;
 
+import org.springframework.beans.factory.support.BeanNameGenerator;
+import org.springframework.core.annotation.AliasFor;
+import org.springframework.core.type.filter.TypeFilter;
+
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Repeatable;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-
-import org.springframework.beans.factory.support.BeanNameGenerator;
-import org.springframework.core.annotation.AliasFor;
-import org.springframework.core.type.filter.TypeFilter;
 
 /**
  * Configures component scanning directives for use with @{@link Configuration} classes.
@@ -45,6 +45,8 @@ import org.springframework.core.type.filter.TypeFilter;
  * {@code @ComponentScan} level would be ignored.
  *
  * <p>See {@link Configuration @Configuration}'s Javadoc for usage examples.
+ *
+ * 当前注解注解的类，将会在{@link ConfigurationClassParser#doProcessConfigurationClass}中处理，扫描到对应的类定义，并递归处理这些类定义中可能存在的配置类，以此扫描到所有需要的类
  *
  * @author Chris Beams
  * @author Juergen Hoeller

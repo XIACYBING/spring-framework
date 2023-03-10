@@ -150,6 +150,8 @@ public class AnnotationTransactionAttributeSource extends AbstractFallbackTransa
 	@Override
 	@Nullable
 	protected TransactionAttribute findTransactionAttribute(Class<?> clazz) {
+
+		// 从类上获取事务属性
 		return determineTransactionAttribute(clazz);
 	}
 

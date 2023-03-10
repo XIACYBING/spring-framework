@@ -47,7 +47,7 @@ abstract class TransactionAttributeSourcePointcut extends StaticMethodMatcherPoi
 		// 获取事务属性源
 		TransactionAttributeSource tas = getTransactionAttributeSource();
 
-		// 源不等于空（有事务配置），且当前方法有事务声明，则返回true
+		// 源不等于空（有事务配置），且当前方法有事务声明，则返回true，说明对应类需要被事务的Advisor增强
 		// AbstractFallbackTransactionAttributeSource.getTransactionAttribute
 		return (tas == null || tas.getTransactionAttribute(method, targetClass) != null);
 	}

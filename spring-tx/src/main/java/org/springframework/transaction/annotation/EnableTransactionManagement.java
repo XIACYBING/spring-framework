@@ -16,15 +16,16 @@
 
 package org.springframework.transaction.annotation;
 
+import org.springframework.context.annotation.AdviceMode;
+import org.springframework.context.annotation.ConfigurationClassParser;
+import org.springframework.context.annotation.Import;
+import org.springframework.core.Ordered;
+
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-
-import org.springframework.context.annotation.AdviceMode;
-import org.springframework.context.annotation.Import;
-import org.springframework.core.Ordered;
 
 /**
  * Enables Spring's annotation-driven transaction management capability, similar to
@@ -147,6 +148,10 @@ import org.springframework.core.Ordered;
  * this case the {@code spring-aspects} module JAR must be present on the classpath, with
  * compile-time weaving or load-time weaving applying the aspect to the affected classes.
  * There is no proxy involved in such a scenario; local calls will be intercepted as well.
+ *
+ * 当前注解会引入{@link TransactionManagementConfigurationSelector}，该selector
+ * 会在{@link ConfigurationClassParser#processImports}的处理中，引入{@link ProxyTransactionManagementConfiguration}
+ * ，该类会配置相关的事务增强器到容器中，通过AOP扫描并代理所有需要被代理的类
  *
  * @author Chris Beams
  * @author Juergen Hoeller

@@ -16,13 +16,13 @@
 
 package org.springframework.context.annotation;
 
-import java.lang.annotation.Annotation;
-
 import org.springframework.core.GenericTypeResolver;
 import org.springframework.core.annotation.AnnotationAttributes;
 import org.springframework.core.type.AnnotationMetadata;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
+
+import java.lang.annotation.Annotation;
 
 /**
  * Convenient base class for {@link ImportSelector} implementations that select imports
@@ -64,9 +64,15 @@ public abstract class AdviceModeImportSelector<A extends Annotation> implements 
 	 */
 	@Override
 	public final String[] selectImports(AnnotationMetadata importingClassMetadata) {
+
+		// 从当前类中，获取包含当前类的注解？
+		// 在@EnableTransactionManagement场景中，当前类是TransactionManagementConfigurationSelector
+		// ，是@EnableTransactionManagement中@Import进来的类，getClass()方法获取到的就是TransactionManagementConfigurationSelector
+		// .class，而annType则是EnableTransactionManagement的类
 		Class<?> annType = GenericTypeResolver.resolveTypeArgument(getClass(), AdviceModeImportSelector.class);
 		Assert.state(annType != null, "Unresolvable type argument for AdviceModeImportSelector");
 
+		// 获取对应注解的属性
 		AnnotationAttributes attributes = AnnotationConfigUtils.attributesFor(importingClassMetadata, annType);
 		if (attributes == null) {
 			throw new IllegalArgumentException(String.format(
@@ -74,7 +80,10 @@ public abstract class AdviceModeImportSelector<A extends Annotation> implements 
 					annType.getSimpleName(), importingClassMetadata.getClassName()));
 		}
 
+		// 获取adviceMode
 		AdviceMode adviceMode = attributes.getEnum(getAdviceModeAttributeName());
+
+		// 获取类import的内容
 		String[] imports = selectImports(adviceMode);
 		if (imports == null) {
 			throw new IllegalArgumentException("Unknown AdviceMode: " + adviceMode);

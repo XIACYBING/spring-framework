@@ -39,6 +39,13 @@ import org.springframework.transaction.interceptor.TransactionInterceptor;
 @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 public class ProxyTransactionManagementConfiguration extends AbstractTransactionManagementConfiguration {
 
+	/**
+	 * Bean事务的增强器，提供判断一个类是否需要进行事务代理、以及相关类/方法事务属性缓存的能力
+	 *
+	 * 最终会被AOP编织到代理类的增强其集合中
+	 * @param transactionAttributeSource 事务属性源
+	 * @param transactionInterceptor 事务拦截器，该类的invoke方法是事务处理的入口
+	 */
 	@Bean(name = TransactionManagementConfigUtils.TRANSACTION_ADVISOR_BEAN_NAME)
 	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 	public BeanFactoryTransactionAttributeSourceAdvisor transactionAdvisor(
@@ -53,12 +60,19 @@ public class ProxyTransactionManagementConfiguration extends AbstractTransaction
 		return advisor;
 	}
 
+	/**
+	 * 事务属性源，根据当前的一些配置内容，提供事务属性配置的解析能力
+	 */
 	@Bean
 	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 	public TransactionAttributeSource transactionAttributeSource() {
 		return new AnnotationTransactionAttributeSource();
 	}
 
+	/**
+	 * 事务拦截器，会被放入事务增强器，最终被一起编织到代理类的增强器集合中，并在相关的方法调用时开启事务
+	 * @param transactionAttributeSource 事务属性原
+	 */
 	@Bean
 	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 	public TransactionInterceptor transactionInterceptor(TransactionAttributeSource transactionAttributeSource) {
