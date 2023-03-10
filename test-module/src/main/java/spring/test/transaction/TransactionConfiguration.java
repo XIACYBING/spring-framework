@@ -5,6 +5,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 import org.springframework.transaction.TransactionManager;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 import javax.sql.DataSource;
 
@@ -13,6 +14,7 @@ import javax.sql.DataSource;
  * @since 2023/3/7
  */
 @Configuration
+@EnableTransactionManagement
 public class TransactionConfiguration {
 
 	@Bean

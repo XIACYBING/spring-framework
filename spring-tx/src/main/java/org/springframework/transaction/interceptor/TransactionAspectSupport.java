@@ -334,7 +334,7 @@ public abstract class TransactionAspectSupport implements BeanFactoryAware, Init
 		// If the transaction attribute is null, the method is non-transactional.
 		TransactionAttributeSource tas = getTransactionAttributeSource();
 
-		// 获取事务属性：AbstractFallbackTransactionAttributeSource.getTransactionAttribute
+		// 获取事务属性：AbstractFallbackTransactionAttributeSource.getTransactionAttribute（走缓存，进行代理的时候就会计算完成）
 		final TransactionAttribute txAttr = (tas != null ? tas.getTransactionAttribute(method, targetClass) : null);
 
 		// 获取事务管理器（事务属性可以指定事务管理器）
@@ -367,6 +367,7 @@ public abstract class TransactionAspectSupport implements BeanFactoryAware, Init
 		if (txAttr == null || !(ptm instanceof CallbackPreferringPlatformTransactionManager)) {
 
 			// 根据事务属性，以及当前事务情况，必要时创建新事务，并绑定到当前线程持有事务信息的ThreadLocal上
+			// 当前逻辑中，会处理事务传播关系
 			// Standard transaction demarcation with getTransaction and commit/rollback calls.
 			TransactionInfo txInfo = createTransactionIfNecessary(ptm, txAttr, joinpointIdentification);
 
@@ -612,6 +613,9 @@ public abstract class TransactionAspectSupport implements BeanFactoryAware, Init
 		TransactionStatus status = null;
 		if (txAttr != null) {
 			if (tm != null) {
+
+				// 获取事务，此处会处理事务传播关系和隔离级别
+				// AbstractPlatformTransactionManager.getTransaction
 				status = tm.getTransaction(txAttr);
 			}
 

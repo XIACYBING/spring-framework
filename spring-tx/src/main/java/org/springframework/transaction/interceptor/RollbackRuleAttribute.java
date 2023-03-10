@@ -116,6 +116,8 @@ public class RollbackRuleAttribute implements Serializable{
 		// 使用抛出异常的全链路名称，匹配配置的异常名称，如果匹配的上，则直接返回depth
 		// 这里会有一个问题，配置的回滚/不回滚异常是XXXException，抛出的异常是XXXExceptionA，这是会被匹配上的
 		// <a href="https://mp.weixin.qq.com/s/ERsDSEB1UK4j_Ao9M3hyKQ">why技术-发现Spring事务的一个实锤bug，官方还拒不承认？你来评评理..</a>
+		// <a href="https://github.com/spring-projects/spring-framework/issues/28098">Support type-safe transaction
+		// rollback rules</a>
 		if (exceptionClass.getName().contains(this.exceptionName)) {
 			// Found it!
 			return depth;

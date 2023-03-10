@@ -16,6 +16,13 @@
 
 package org.springframework.transaction.support;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.springframework.core.NamedThreadLocal;
+import org.springframework.core.annotation.AnnotationAwareOrderComparator;
+import org.springframework.lang.Nullable;
+import org.springframework.util.Assert;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -23,14 +30,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import org.springframework.core.NamedThreadLocal;
-import org.springframework.core.annotation.AnnotationAwareOrderComparator;
-import org.springframework.lang.Nullable;
-import org.springframework.util.Assert;
 
 /**
  * Central delegate that manages resources and transaction synchronizations per thread.
@@ -259,6 +258,8 @@ public abstract class TransactionSynchronizationManager {
 	/**
 	 * Return if transaction synchronization is active for the current thread.
 	 * Can be called before register to avoid unnecessary instance creation.
+	 *
+	 * 返回当前事务同步是否激活，调用该方法避免不必要的实例创建
 	 * @see #registerSynchronization
 	 */
 	public static boolean isSynchronizationActive() {
@@ -275,6 +276,8 @@ public abstract class TransactionSynchronizationManager {
 			throw new IllegalStateException("Cannot activate transaction synchronization - already active");
 		}
 		logger.trace("Initializing transaction synchronization");
+
+		// 事务同步回调集合设置为一个空集合，后面可以直接add
 		synchronizations.set(new LinkedHashSet<>());
 	}
 
