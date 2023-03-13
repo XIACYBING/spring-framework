@@ -172,7 +172,7 @@ class ConfigurationClassParser {
 			BeanDefinition bd = holder.getBeanDefinition();
 			try {
 
-				// 不同的BeanDefinition走不同的解析链路
+				// 不同的BeanDefinition走不同的解析链路，但是最终都是在{@code #processConfigurationClass}中处理
 				if (bd instanceof AnnotatedBeanDefinition) {
 					parse(((AnnotatedBeanDefinition) bd).getMetadata(), holder.getBeanName());
 				}
@@ -192,6 +192,8 @@ class ConfigurationClassParser {
 			}
 		}
 
+		// @Configuration标记的BeanDefinition处理完成后，可能会有DeferredImportSelector需要延后处理
+		// 即：DeferredImportSelector需要注册到deferredImportSelectorHandler中，在configCandidates处理完成后处理
 		this.deferredImportSelectorHandler.process();
 	}
 
@@ -270,6 +272,7 @@ class ConfigurationClassParser {
 		}
 		while (sourceClass != null);
 
+		// 处理完成的configClass放到集合中，后面会通过该集合验证问题，以及获取该Map的values去处理
 		this.configurationClasses.put(configClass, configClass);
 	}
 
@@ -286,11 +289,13 @@ class ConfigurationClassParser {
 			ConfigurationClass configClass, SourceClass sourceClass, Predicate<String> filter)
 			throws IOException {
 
+		// 处理{@code @Component}注解声明的配置Bean
 		if (configClass.getMetadata().isAnnotated(Component.class.getName())) {
 			// Recursively process any member (nested) classes first
 			processMemberClasses(configClass, sourceClass, filter);
 		}
 
+		// 处理包含{@code @PropertySources}注解的Bean
 		// Process any @PropertySource annotations
 		for (AnnotationAttributes propertySource : AnnotationConfigUtils.attributesForRepeatable(
 				sourceClass.getMetadata(), PropertySources.class,
@@ -304,6 +309,7 @@ class ConfigurationClassParser {
 			}
 		}
 
+		// 处理包含{@code @ComponentScans}注解的Bean
 		// Process any @ComponentScan annotations
 		Set<AnnotationAttributes> componentScans = AnnotationConfigUtils.attributesForRepeatable(
 				sourceClass.getMetadata(), ComponentScans.class, ComponentScan.class);
@@ -324,7 +330,7 @@ class ConfigurationClassParser {
 						bdCand = holder.getBeanDefinition();
 					}
 
-					// 如果是配置类，则需要额外处理，将bdCand中配置的其他类定义导入到容器集合中
+					// 如果是配置类，则需要额外处理，将bdCand中配置的其他类定义导入到容器集合中（其实也是循环当前链路，进行处理）
 					if (ConfigurationClassUtils.checkConfigurationClassCandidate(bdCand, this.metadataReaderFactory)) {
 						parse(bdCand.getBeanClassName(), holder.getBeanName());
 					}
@@ -332,37 +338,56 @@ class ConfigurationClassParser {
 			}
 		}
 
-		// 处理@Import注解
+		// 处理包含{@code @Import}注解的Bean
 		// Process any @Import annotations
 		processImports(configClass, sourceClass, getImports(sourceClass), filter, true);
 
+		// 处理包含{@code @ImportResource}注解的Bean
 		// Process any @ImportResource annotations
 		AnnotationAttributes importResource =
 				AnnotationConfigUtils.attributesFor(sourceClass.getMetadata(), ImportResource.class);
 		if (importResource != null) {
+
+			// 获取locations属性
 			String[] resources = importResource.getStringArray("locations");
+
+			// 获取reader属性（指定要用来读取location的resource的reader）
 			Class<? extends BeanDefinitionReader> readerClass = importResource.getClass("reader");
+
+			// 循环处理资源
 			for (String resource : resources) {
+
+				// 处理占位符
 				String resolvedResource = this.environment.resolveRequiredPlaceholders(resource);
+
+				// 添加resource和reader的映射，后面处理这些资源
 				configClass.addImportedResource(resolvedResource, readerClass);
 			}
 		}
 
+		// 从sourceClass中提取出声明了{@code @Bean}注解的方法并处理
 		// Process individual @Bean methods
 		Set<MethodMetadata> beanMethods = retrieveBeanMethodMetadata(sourceClass);
 		for (MethodMetadata methodMetadata : beanMethods) {
 			configClass.addBeanMethod(new BeanMethod(methodMetadata, configClass));
 		}
 
+		// 当前配置类可能继承某些接口，而接口中可能有些默认方法被{@code @Bean}注解标记，需要处理这部分方法
 		// Process default methods on interfaces
 		processInterfaces(configClass, sourceClass);
 
+		// 如果sourceClass有父类，且父类符合相关条件
 		// Process superclass, if any
 		if (sourceClass.getMetadata().hasSuperClass()) {
 			String superclass = sourceClass.getMetadata().getSuperClassName();
+
+			// 父类不为空，父类没有被处理过，todo 父类不是以java开头（是某些规则导致的吗？）
 			if (superclass != null && !superclass.startsWith("java") &&
 					!this.knownSuperclasses.containsKey(superclass)) {
 				this.knownSuperclasses.put(superclass, configClass);
+
+				// 如果父类没被处理过，就返回，外部会循环，再次调用当前方法来处理
+				// 为什么不用递归：猜测可能是因为配置的继承可能很长，如果用递归可能堆栈溢出
 				// Superclass found, return its annotation metadata and recurse
 				return sourceClass.getSuperClass();
 			}
@@ -409,14 +434,24 @@ class ConfigurationClassParser {
 	 * Register default methods on interfaces implemented by the configuration class.
 	 */
 	private void processInterfaces(ConfigurationClass configClass, SourceClass sourceClass) throws IOException {
+
+		// 循环处理sourceClass实现的所有接口
 		for (SourceClass ifc : sourceClass.getInterfaces()) {
+
+			// 获取当前接口中被@Bean标记的方法
 			Set<MethodMetadata> beanMethods = retrieveBeanMethodMetadata(ifc);
+
+			// 循环方法
 			for (MethodMetadata methodMetadata : beanMethods) {
+
+				// 只有非抽象的方法，才能加入配置中
 				if (!methodMetadata.isAbstract()) {
 					// A default method or other concrete method on a Java 8+ interface...
 					configClass.addBeanMethod(new BeanMethod(methodMetadata, configClass));
 				}
 			}
+
+			// 接口可能继承接口，需要递归处理
 			processInterfaces(configClass, ifc);
 		}
 	}
@@ -426,17 +461,31 @@ class ConfigurationClassParser {
 	 */
 	private Set<MethodMetadata> retrieveBeanMethodMetadata(SourceClass sourceClass) {
 		AnnotationMetadata original = sourceClass.getMetadata();
+
+		// 获取被@Bean标记的方法元数据
 		Set<MethodMetadata> beanMethods = original.getAnnotatedMethods(Bean.class.getName());
+
+		// 如果对应的方法元数据数量大于1，且类的注解元数据是指定的类型，则需要处理这些方法元数据
 		if (beanMethods.size() > 1 && original instanceof StandardAnnotationMetadata) {
 			// Try reading the class file via ASM for deterministic declaration order...
 			// Unfortunately, the JVM's standard reflection returns methods in arbitrary
 			// order, even between different runs of the same application on the same JVM.
+			// 通过ASM读取Class文件，获取方法在类中声明的真正顺序
+			// 因为JVM的标准反射泛化的方法顺序是随机的，即使是同一个JVM虚拟机，同一个应用的不同次调用，都可能返回随机顺序的方法集合
 			try {
+
+				// 通过ASM读取类的注解相关元数据
 				AnnotationMetadata asm =
 						this.metadataReaderFactory.getMetadataReader(original.getClassName()).getAnnotationMetadata();
+
+				// 获取被@Bean声明的方法，目前的实现中返回的都是LinkedHashSet，确保顺序
 				Set<MethodMetadata> asmMethods = asm.getAnnotatedMethods(Bean.class.getName());
+
+				// 如果通过ASM读取到的对应方法大于等于反射读取到的方法，todo 什么时候ASM读取到的方法会小于反射获取到的方法？
 				if (asmMethods.size() >= beanMethods.size()) {
 					Set<MethodMetadata> selectedMethods = new LinkedHashSet<>(asmMethods.size());
+
+					// 以asmMethods的索引作为顺序，重新排序beanMethods
 					for (MethodMetadata asmMethod : asmMethods) {
 						for (MethodMetadata beanMethod : beanMethods) {
 							if (beanMethod.getMethodName().equals(asmMethod.getMethodName())) {
@@ -445,6 +494,8 @@ class ConfigurationClassParser {
 							}
 						}
 					}
+
+					// 如果排序完成的selectedMethods的大小和原来的beanMethods一致，说明beanMethods已经完成了排序，可以用selectedMethods替换beanMethods
 					if (selectedMethods.size() == beanMethods.size()) {
 						// All reflection-detected methods found in ASM method set -> proceed
 						beanMethods = selectedMethods;
@@ -456,6 +507,8 @@ class ConfigurationClassParser {
 				// No worries, let's continue with the reflection metadata we started with...
 			}
 		}
+
+		// 返回获取到的声明了@Bean的方法
 		return beanMethods;
 	}
 
@@ -584,7 +637,7 @@ class ConfigurationClassParser {
 			return;
 		}
 
-		// 校验循环import的清空
+		// 校验循环import的情况
 		if (checkForCircularImports && isChainedImportOnStack(configClass)) {
 			this.problemReporter.error(new CircularImportProblem(configClass, this.importStack));
 		}

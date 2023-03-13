@@ -16,16 +16,16 @@
 
 package org.springframework.context.annotation;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.annotation.AliasFor;
+import org.springframework.stereotype.Component;
+
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.annotation.AliasFor;
-import org.springframework.stereotype.Component;
 
 /**
  * Indicates that a class declares one or more {@link Bean @Bean} methods and
@@ -440,6 +440,17 @@ public @interface Configuration {
 	String value() default "";
 
 	/**
+	 * 是否代理被{@link Bean}注解标记的方法，默认是true；
+	 * 这种代理可以加强bean的生命周期行为，甚至让配置类内部调用/{@code inter-bean references}都返回单例，参考{@link Bean}的文档，这种模式只在
+	 * {@link Configuration}中有效，方法不能声明为{@code final}，基于{@code AspectJ}代理实现的
+	 *
+	 * 为true时，是{@code Full}模式，声明的bean是单例；
+	 * 为false时，是{@code Light}模式，声明的bean是原型。
+	 *
+	 *
+	 *
+	 * todo 验证，并找到更多的文档内容，什么场景下用，有什么效果
+	 *
 	 * Specify whether {@code @Bean} methods should get proxied in order to enforce
 	 * bean lifecycle behavior, e.g. to return shared singleton bean instances even
 	 * in case of direct {@code @Bean} method calls in user code. This feature

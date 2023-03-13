@@ -251,6 +251,7 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 		if (!this.registriesPostProcessed.contains(factoryId)) {
 			// BeanDefinitionRegistryPostProcessor hook apparently not supported...
 			// Simply call processConfigurationClasses lazily at this point then.
+			// 处理BeanDefinition
 			processConfigBeanDefinitions((BeanDefinitionRegistry) beanFactory);
 		}
 
@@ -323,43 +324,79 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 		do {
 
 			// 开始处理@Configuration注解标记的类
+			// 当前处理主要是将各种注解（@Import、@ComponentScan、@Bean...）导入的各种配置解析完成，并将处理完成的内容存储到parser中
 			parser.parse(candidates);
+
+			// 验证解析过程中可能出现的违反规则的配置
 			parser.validate();
 
+			// 获取解析完成的ConfigurationClass，并移除掉在之前的循环中已经处理过的那部分
 			Set<ConfigurationClass> configClasses = new LinkedHashSet<>(parser.getConfigurationClasses());
 			configClasses.removeAll(alreadyParsed);
 
+			// 读取parser解析出来的内容，生成相关的BeanDefinition
+
+			// 创建reader
 			// Read the model and create bean definitions based on its content
 			if (this.reader == null) {
 				this.reader = new ConfigurationClassBeanDefinitionReader(
 						registry, this.sourceExtractor, this.resourceLoader, this.environment,
 						this.importBeanNameGenerator, parser.getImportRegistry());
 			}
+
+			// 基于parser解析出的configurationClass，使用reader注册对应的beanDefinition到registry中
 			this.reader.loadBeanDefinitions(configClasses);
+
+			// 将当前所有的configClasses加入alreadyParsed中，方便下一循环排除已经加载到registry中的那部分configurationClass
 			alreadyParsed.addAll(configClasses);
 
+			// 清除已经被parser处理过的配置类
 			candidates.clear();
+
+			// 基于之前提取出的candidateNames，和当前已经在registry中的BeanDefinition，判断是否有已注册，但未被parser处理处理过的configurationClass，需要被处理
 			if (registry.getBeanDefinitionCount() > candidateNames.length) {
+
+				// 获取当前所有bean定义的名称集合
 				String[] newCandidateNames = registry.getBeanDefinitionNames();
+
+				// 已经被处理过的bean名称集合
 				Set<String> oldCandidateNames = new HashSet<>(Arrays.asList(candidateNames));
+
+				// 新建一个集合，用于防止当前循环被处理过的configurationClass名称，并将alreadyParsed中的所有bean名称都放进去
 				Set<String> alreadyParsedClasses = new HashSet<>();
 				for (ConfigurationClass configurationClass : alreadyParsed) {
 					alreadyParsedClasses.add(configurationClass.getMetadata().getClassName());
 				}
+
+				// 循环当前所有的bean名称集合：不在上一轮处理的集合（oldCandidateNames）中，是注解类，且不再之前处理过的集合（alreadyParsedClasses）中
 				for (String candidateName : newCandidateNames) {
+
+					// 如果不在之前的bean名称集合中
 					if (!oldCandidateNames.contains(candidateName)) {
+
+						// 获取对应的bean定义
 						BeanDefinition bd = registry.getBeanDefinition(candidateName);
-						if (ConfigurationClassUtils.checkConfigurationClassCandidate(bd, this.metadataReaderFactory) &&
-								!alreadyParsedClasses.contains(bd.getBeanClassName())) {
+
+						// 校验是否注解类（包含@Configuration/@Component/@ComponentScan/@Import/@ImportResource）
+						if (ConfigurationClassUtils.checkConfigurationClassCandidate(bd, this.metadataReaderFactory)
+								// 而且之前没有被处理过
+								&& !alreadyParsedClasses.contains(bd.getBeanClassName())) {
+
+							// 符合条件的，加入candidates，在下一循环中处理
 							candidates.add(new BeanDefinitionHolder(bd, candidateName));
 						}
 					}
 				}
+
+				// 下一轮循环中，newCandidateNames替换candidateNames
 				candidateNames = newCandidateNames;
 			}
 		}
+
+		// 如果还有没被处理过的配置类，那么就继续循环
 		while (!candidates.isEmpty());
 
+		// 为了支持ImportAware相关的@Configuration类，注册IMPORT_REGISTRY_BEAN_NAME对应的bean到sbr中
 		// Register the ImportRegistry as a bean in order to support ImportAware @Configuration classes
 		if (sbr != null && !sbr.containsSingleton(IMPORT_REGISTRY_BEAN_NAME)) {
 			sbr.registerSingleton(IMPORT_REGISTRY_BEAN_NAME, parser.getImportRegistry());

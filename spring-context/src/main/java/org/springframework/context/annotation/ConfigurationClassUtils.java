@@ -88,15 +88,21 @@ abstract class ConfigurationClassUtils {
 			return false;
 		}
 
+		// 以下的if逻辑都是为了获取注解元数据
 		AnnotationMetadata metadata;
+
+		// 是AnnotatedBeanDefinition类型，且BeanClassName和Meta中的ClassName是一致的，说明可能是配置类，直接获取注解元数据
 		if (beanDef instanceof AnnotatedBeanDefinition &&
 				className.equals(((AnnotatedBeanDefinition) beanDef).getMetadata().getClassName())) {
 			// Can reuse the pre-parsed metadata from the given BeanDefinition...
 			metadata = ((AnnotatedBeanDefinition) beanDef).getMetadata();
 		}
+
+		// 是AbstractBeanDefinition，且有beanDef中有指定Class
 		else if (beanDef instanceof AbstractBeanDefinition && ((AbstractBeanDefinition) beanDef).hasBeanClass()) {
 			// Check already loaded Class if present...
 			// since we possibly can't even load the class file for this Class.
+			// 以下几种beanClass，不是配置的Bean，需要返回false todo 是因为获取不到注解元数据，还是其他的什么原因？
 			Class<?> beanClass = ((AbstractBeanDefinition) beanDef).getBeanClass();
 			if (BeanFactoryPostProcessor.class.isAssignableFrom(beanClass) ||
 					BeanPostProcessor.class.isAssignableFrom(beanClass) ||
@@ -108,6 +114,8 @@ abstract class ConfigurationClassUtils {
 		}
 		else {
 			try {
+
+				// 否则通过metadataReaderFactory读取class，获取注解元数据
 				MetadataReader metadataReader = metadataReaderFactory.getMetadataReader(className);
 				metadata = metadataReader.getAnnotationMetadata();
 			}
@@ -116,19 +124,27 @@ abstract class ConfigurationClassUtils {
 					logger.debug("Could not find class file for introspecting configuration annotations: " +
 							className, ex);
 				}
+
+				// 读取异常，直接返回false
 				return false;
 			}
 		}
 
+		// 获取当前类的Configuration注解的属性
 		Map<String, Object> config = metadata.getAnnotationAttributes(Configuration.class.getName());
+
+		// 属性集合不为空，且proxyBeanMethods属性不是false（Full模式，单例）
 		if (config != null && !Boolean.FALSE.equals(config.get("proxyBeanMethods"))) {
 			beanDef.setAttribute(CONFIGURATION_CLASS_ATTRIBUTE, CONFIGURATION_CLASS_FULL);
 		}
 
-		// 是配置类：拥有candidateIndicators中的某个注解
+		// 是配置类，或（拥有@Component、@ComponentScan、@Import、@ImportResource中的某个注解，或类中有被@Bean标注的方法）
+		// todo config不为空，proxyBeanMethods是false，那么是light模式可以理解，为什么有任意一个注解的，也要标记为light模式？
 		else if (config != null || isConfigurationCandidate(metadata)) {
 			beanDef.setAttribute(CONFIGURATION_CLASS_ATTRIBUTE, CONFIGURATION_CLASS_LITE);
 		}
+
+		// config为空，且isConfigurationCandidate(metadata)为false，说明一定不是配置类，返回false
 		else {
 			return false;
 		}
@@ -155,7 +171,7 @@ abstract class ConfigurationClassUtils {
 			return false;
 		}
 
-		// 有任意一个配置注解
+		// 有任意一个配置注解：@Component、@ComponentScan、@Import、@ImportResource
 		// Any of the typical annotations found?
 		for (String indicator : candidateIndicators) {
 			if (metadata.isAnnotated(indicator)) {
@@ -165,6 +181,8 @@ abstract class ConfigurationClassUtils {
 
 		// Finally, let's look for @Bean methods...
 		try {
+
+			// 或者如果有声明为@Bean的方法
 			return metadata.hasAnnotatedMethods(Bean.class.getName());
 		}
 		catch (Throwable ex) {
