@@ -964,6 +964,8 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 			}
 
 			// 如果两个BeanDefinition不相等，则可以覆盖，此处打印日志
+			// 比如类A被@Component注解标记，但是又在某个@Configuration类中用@Bean标记，且beanId一致，那么这两个BeanDefinition就可能互相覆盖
+			// todo 谁覆盖谁是按照扫描顺序确定的吗？
 			else if (!beanDefinition.equals(existingDefinition)) {
 				if (logger.isDebugEnabled()) {
 					logger.debug("Overriding bean definition for bean '" + beanName +

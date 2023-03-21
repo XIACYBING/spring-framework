@@ -529,6 +529,8 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 				postProcessBeanFactory(beanFactory);
 
 				// 调用已经注册为bean的，在context中的factory processor
+				// 比如在ConfigurationClassPostProcessor解析配置的Bean（@Configuration、@Component、@ComponengScan、@Import
+				// 和@ImportResource）相关的Bean
 				// Invoke factory processors registered as beans in the context.
 				invokeBeanFactoryPostProcessors(beanFactory);
 
@@ -547,7 +549,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 				// Check for listener beans and register them.
 				registerListeners();
 
-				// 初始化其他的bean，业务类大部分在这个缓解被初始化
+				// 初始化其他的bean，业务类大部分在这个缓解被初始化，将类从BeanDefinition加载为Bean实例
 				// Instantiate all remaining (non-lazy-init) singletons.
 				finishBeanFactoryInitialization(beanFactory);
 

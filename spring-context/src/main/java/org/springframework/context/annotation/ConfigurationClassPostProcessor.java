@@ -232,7 +232,7 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 		}
 		this.registriesPostProcessed.add(registryId);
 
-		// 处理配置BeanDefinition
+		// 处理配置BeanDefinition（注册BeanDefinition到Registry中）
 		processConfigBeanDefinitions(registry);
 	}
 
@@ -344,7 +344,7 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 						this.importBeanNameGenerator, parser.getImportRegistry());
 			}
 
-			// 基于parser解析出的configurationClass，使用reader注册对应的beanDefinition到registry中
+			// 加载BeanDefinition到registry：基于parser解析出的configurationClass，使用reader注册对应的beanDefinition到registry中
 			this.reader.loadBeanDefinitions(configClasses);
 
 			// 将当前所有的configClasses加入alreadyParsed中，方便下一循环排除已经加载到registry中的那部分configurationClass

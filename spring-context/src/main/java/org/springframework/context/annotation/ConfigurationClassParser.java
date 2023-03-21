@@ -268,6 +268,7 @@ class ConfigurationClassParser {
 		do {
 
 			// 处理配置的Configuration，sourceClass表示对应的配置类，比如ProviderApplication，以及相关注解可能Import的内容
+			// 会return是父类，因为父类中可能也有配置
 			sourceClass = doProcessConfigurationClass(configClass, sourceClass, filter);
 		}
 		while (sourceClass != null);
