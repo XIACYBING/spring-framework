@@ -31,6 +31,8 @@ package org.springframework.context;
  * implemented or if the @{@link org.springframework.core.annotation.Order Order}
  * annotation is present and to sort instances accordingly if so prior to invocation.
  *
+ * 应用上下文初始化器，可用来在{@linkplain ConfigurableApplicationContext#refresh() refreshed}之前对应用上下文{@link C}定制化某些逻辑
+ *
  * @author Chris Beams
  * @since 3.1
  * @param <C> the application context type

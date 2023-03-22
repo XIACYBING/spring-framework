@@ -16,12 +16,12 @@
 
 package org.springframework.core.annotation;
 
-import java.lang.reflect.AnnotatedElement;
-import java.util.Map;
-
 import org.springframework.core.annotation.MergedAnnotations.SearchStrategy;
 import org.springframework.lang.Nullable;
 import org.springframework.util.ConcurrentReferenceHashMap;
+
+import java.lang.reflect.AnnotatedElement;
+import java.util.Map;
 
 /**
  * General utility for determining the order of an object based on its type declaration.
@@ -94,28 +94,49 @@ public abstract class OrderUtils {
 	 */
 	@Nullable
 	static Integer getOrderFromAnnotations(AnnotatedElement element, MergedAnnotations annotations) {
+
+		// 如果element非Class，则从以获取到的注解集合annotations中直接获取orderValue
+		// 非Class的element的orderValue，不缓存
 		if (!(element instanceof Class)) {
 			return findOrder(annotations);
 		}
+
+		// 获取element的orderValue缓存结果，如果存在则返回
 		Object cached = orderCache.get(element);
 		if (cached != null) {
 			return (cached instanceof Integer ? (Integer) cached : null);
 		}
+
+		// 获取orderValue
 		Integer result = findOrder(annotations);
+
+		// 设置缓存，如果orderValue为空，则缓存设置为特定的对象NOT_ANNOTATED
 		orderCache.put(element, result != null ? result : NOT_ANNOTATED);
+
+		// 返回结果
 		return result;
 	}
 
 	@Nullable
 	private static Integer findOrder(MergedAnnotations annotations) {
+
+		// 获取Order注解
 		MergedAnnotation<Order> orderAnnotation = annotations.get(Order.class);
+
+		// 如果存在Order注解，则获取配置的orderValue
 		if (orderAnnotation.isPresent()) {
 			return orderAnnotation.getInt(MergedAnnotation.VALUE);
 		}
+
+		// 如果Order注解为空，则获取Priority注解
 		MergedAnnotation<?> priorityAnnotation = annotations.get(JAVAX_PRIORITY_ANNOTATION);
+
+		// 如果存在Priority注解，则返回配置的值
 		if (priorityAnnotation.isPresent()) {
 			return priorityAnnotation.getInt(MergedAnnotation.VALUE);
 		}
+
+		// 既不存在Order注解，也不存在Priority注解，直接返回空
 		return null;
 	}
 

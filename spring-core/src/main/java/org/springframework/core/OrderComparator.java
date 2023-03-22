@@ -16,12 +16,12 @@
 
 package org.springframework.core;
 
+import org.springframework.lang.Nullable;
+import org.springframework.util.ObjectUtils;
+
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
-
-import org.springframework.lang.Nullable;
-import org.springframework.util.ObjectUtils;
 
 /**
  * {@link Comparator} implementation for {@link Ordered} objects, sorting
@@ -40,6 +40,11 @@ import org.springframework.util.ObjectUtils;
  * assigned a value of {@link Ordered#LOWEST_PRECEDENCE}, thus ending up
  * at the end of a sorted collection in arbitrary order with respect to
  * other objects with the same order value.
+ *
+ * 当前比较器用于比较{@link Ordered}对象的顺序，有如下规则：
+ * 	继承{@link PriorityOrdered}的对象，优先级高于未继承{@link PriorityOrdered}的对象
+ * 	否则按照{@link PriorityOrdered}或{@link Ordered}配置的orderValue比较大小
+ * 	没有继承{@link Ordered}的对象，默认优先级是{@link Ordered#LOWEST_PRECEDENCE}，即最低优先级
  *
  * @author Juergen Hoeller
  * @author Sam Brannen
@@ -70,19 +75,30 @@ public class OrderComparator implements Comparator<Object> {
 
 	@Override
 	public int compare(@Nullable Object o1, @Nullable Object o2) {
+
+		// 继承PriorityOrdered的对象，优先于未继承PriorityOrdered的对象
+		// 当前比较器：就按照Order接口配置的orderValue来比较优先级，非Order接口默认返回Ordered.LOWEST_PRECEDENCE
+		// AnnotationAwareOrderComparator：按照Order接口、@Order注解、@Priority注解配置的orderValue，公平比较
 		return doCompare(o1, o2, null);
 	}
 
 	private int doCompare(@Nullable Object o1, @Nullable Object o2, @Nullable OrderSourceProvider sourceProvider) {
 		boolean p1 = (o1 instanceof PriorityOrdered);
 		boolean p2 = (o2 instanceof PriorityOrdered);
+
+		// 如果p1继承PriorityOrdered，而p2不是，p1更优先，返回-1，p1需要排在更前面
 		if (p1 && !p2) {
 			return -1;
 		}
+
+		// p2继承PriorityOrdered，而p1不是，p2更优先，返回1，p2需要排在更前面
 		else if (p2 && !p1) {
 			return 1;
 		}
 
+		// 否则说明p1和p2都继承了PriorityOrdered，或者都没有继承PriorityOrdered，可以按照它们自身的orderValue进行比较
+
+		// 获取p1和p2的orderValue，并返回比较结果
 		int i1 = getOrder(o1, sourceProvider);
 		int i2 = getOrder(o2, sourceProvider);
 		return Integer.compare(i1, i2);
@@ -97,6 +113,8 @@ public class OrderComparator implements Comparator<Object> {
 	 */
 	private int getOrder(@Nullable Object obj, @Nullable OrderSourceProvider sourceProvider) {
 		Integer order = null;
+
+		// 如果obj不为空，且外部提供的sourceProvider也不为空，则通过sourceProvider获取obj的orderValue
 		if (obj != null && sourceProvider != null) {
 			Object orderSource = sourceProvider.getOrderSource(obj);
 			if (orderSource != null) {
@@ -110,10 +128,15 @@ public class OrderComparator implements Comparator<Object> {
 					}
 				}
 				else {
+
+					// 判断orderSource是否Order接口的实现，是的话返回orderValue，否则返回null
 					order = findOrder(orderSource);
 				}
 			}
 		}
+
+		// 如果有获取到orderValue，则直接返回
+		// 如果外部没有提供sourceProvider，或者外部提供的sourceProvider没有获取到orderValue，则调用额外调用getOrder获取orderValue
 		return (order != null ? order : getOrder(obj));
 	}
 
@@ -126,11 +149,15 @@ public class OrderComparator implements Comparator<Object> {
 	 */
 	protected int getOrder(@Nullable Object obj) {
 		if (obj != null) {
+
+			// 如果obj是Order接口的实现，则返回配置的order值，如果不是，返回空
 			Integer order = findOrder(obj);
 			if (order != null) {
 				return order;
 			}
 		}
+
+		// obj等于空，或者obj不是Order接口的实现
 		return Ordered.LOWEST_PRECEDENCE;
 	}
 
