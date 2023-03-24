@@ -47,7 +47,11 @@ public class ProxyFactory extends ProxyCreatorSupport {
 	 * @param target the target object to be proxied
 	 */
 	public ProxyFactory(Object target) {
+
+		// 设置被代理对象
 		setTarget(target);
+
+		// 获取并设置被代理对象的所有接口
 		setInterfaces(ClassUtils.getAllInterfaces(target));
 	}
 
@@ -57,6 +61,9 @@ public class ProxyFactory extends ProxyCreatorSupport {
 	 * @param proxyInterfaces the interfaces that the proxy should implement
 	 */
 	public ProxyFactory(Class<?>... proxyInterfaces) {
+
+		// 设置代理必须继承的接口
+		// 因为当前没有设置被代理对象，所以当前代理必须添加interceptors
 		setInterfaces(proxyInterfaces);
 	}
 
@@ -69,7 +76,11 @@ public class ProxyFactory extends ProxyCreatorSupport {
 	 * @param interceptor the interceptor that the proxy should invoke
 	 */
 	public ProxyFactory(Class<?> proxyInterface, Interceptor interceptor) {
+
+		// 设置代理必须继承的接口
 		addInterface(proxyInterface);
+
+		// 添加拦截的advice
 		addAdvice(interceptor);
 	}
 
@@ -80,7 +91,11 @@ public class ProxyFactory extends ProxyCreatorSupport {
 	 * @param targetSource the TargetSource that the proxy should invoke
 	 */
 	public ProxyFactory(Class<?> proxyInterface, TargetSource targetSource) {
+
+		// 设置代理必须继承的接口
 		addInterface(proxyInterface);
+
+		// 设置目标对象源
 		setTargetSource(targetSource);
 	}
 
@@ -94,6 +109,8 @@ public class ProxyFactory extends ProxyCreatorSupport {
 	 * @return the proxy object
 	 */
 	public Object getProxy() {
+
+		// 获取代理对象
 		return createAopProxy().getProxy();
 	}
 
@@ -107,12 +124,16 @@ public class ProxyFactory extends ProxyCreatorSupport {
 	 * @return the proxy object
 	 */
 	public Object getProxy(@Nullable ClassLoader classLoader) {
-		// 创建AOPProxy，并根据创建的AOPProxy生成代理
+		// 创建AOPProxy，并根据传入的ClassLoader生成实际的代理对象
 		return createAopProxy().getProxy(classLoader);
 	}
 
 
 	/**
+	 * 根据传入的接口和拦截器创建代理
+	 *
+	 * 当前方法常用于那些将方法调用全权交予拦截器的场景，比如Feign调用、Dubbo调用，这些远程代理可以让某些数据流转看起来像是在一个程序中
+	 *
 	 * Create a new proxy for the given interface and interceptor.
 	 * <p>Convenience method for creating a proxy for a single interceptor,
 	 * assuming that the interceptor handles all calls itself rather than
@@ -128,6 +149,8 @@ public class ProxyFactory extends ProxyCreatorSupport {
 	}
 
 	/**
+	 * 基于传入的{@link TargetSource}，实现传入的{@code proxyInterface}，基于这两个条件创建代理
+	 *
 	 * Create a proxy for the specified {@code TargetSource},
 	 * implementing the specified interface.
 	 * @param proxyInterface the interface that the proxy should implement
@@ -141,6 +164,8 @@ public class ProxyFactory extends ProxyCreatorSupport {
 	}
 
 	/**
+	 * 基于传入的{@code targetSource}创建代理对象
+	 *
 	 * Create a proxy for the specified {@code TargetSource} that extends
 	 * the target class of the {@code TargetSource}.
 	 * @param targetSource the TargetSource that the proxy should invoke

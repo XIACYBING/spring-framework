@@ -16,18 +16,7 @@
 
 package org.springframework.aop.framework;
 
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
 import org.aopalliance.aop.Advice;
-
 import org.springframework.aop.Advisor;
 import org.springframework.aop.DynamicIntroductionAdvice;
 import org.springframework.aop.IntroductionAdvisor;
@@ -41,6 +30,16 @@ import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.CollectionUtils;
+
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Base class for AOP proxy configuration managers.
@@ -86,6 +85,8 @@ public class AdvisedSupport extends ProxyConfig implements Advised {
 	/**
 	 * Interfaces to be implemented by the proxy. Held in List to keep the order
 	 * of registration, to create JDK proxy with specified order of interfaces.
+	 *
+	 * 代理必须继承的接口集合，放在List里面以保证注册的顺序，创建JDK代理时指定接口顺序
 	 */
 	private List<Class<?>> interfaces = new ArrayList<>();
 
@@ -478,13 +479,18 @@ public class AdvisedSupport extends ProxyConfig implements Advised {
 	 * @return a List of MethodInterceptors (may also include InterceptorAndDynamicMethodMatchers)
 	 */
 	public List<Object> getInterceptorsAndDynamicInterceptionAdvice(Method method, @Nullable Class<?> targetClass) {
-		// 包装方法成key，包装后在hashCode和equal上的效率较高
+
+		// 包装方法成key，包装后在hashCode和equals上的效率较高
 		MethodCacheKey cacheKey = new MethodCacheKey(method);
-		// 获取该方法已缓存的调用其链
+
+		// 获取该方法已缓存的拦截器链
 		List<Object> cached = this.methodCache.get(cacheKey);
+
 		// 如果为空，则为第一次获取
 		if (cached == null) {
-			// 到增强器链工厂中获取
+
+			// 到增强器链工厂中获取当前所有的拦截器集合
+			// org.springframework.aop.framework.DefaultAdvisorChainFactory.getInterceptorsAndDynamicInterceptionAdvice
 			cached = this.advisorChainFactory.getInterceptorsAndDynamicInterceptionAdvice(
 					this, method, targetClass);
 

@@ -16,10 +16,10 @@
 
 package org.springframework.aop.framework;
 
+import org.springframework.aop.SpringProxy;
+
 import java.io.Serializable;
 import java.lang.reflect.Proxy;
-
-import org.springframework.aop.SpringProxy;
 
 /**
  * Default {@link AopProxyFactory} implementation, creating either a CGLIB proxy
@@ -48,16 +48,26 @@ public class DefaultAopProxyFactory implements AopProxyFactory, Serializable {
 
 	@Override
 	public AopProxy createAopProxy(AdvisedSupport config) throws AopConfigException {
-		if (config.isOptimize() || config.isProxyTargetClass() || hasNoUserSuppliedProxyInterfaces(config)) {
+		if (config.isOptimize()
+
+				// proxyTargetClass标识为true
+				|| config.isProxyTargetClass()
+
+				// 只有SpringProxy接口需要实现，或者没有接口需要实现
+				|| hasNoUserSuppliedProxyInterfaces(config)) {
+
+			// 获取目标类对象，为空抛出异常
 			Class<?> targetClass = config.getTargetClass();
 			if (targetClass == null) {
 				throw new AopConfigException("TargetSource cannot determine target class: " +
 						"Either an interface or a target is required for proxy creation.");
 			}
-			// 如果目标类实例是接口，或对应的类是通过getProxyClass方法或newProxyInstance方法动态生成的代理类时，才使用JDK代理
+
+			// 如果目标类实例是接口，或对应的类是通过getProxyClass方法或newProxyInstance方法动态生成的代理类（即：目标已经是代理类）时，才使用JDK代理
 			if (targetClass.isInterface() || Proxy.isProxyClass(targetClass)) {
 				return new JdkDynamicAopProxy(config);
 			}
+
 			// 否则就使用CGLIB代理
 			return new ObjenesisCglibAopProxy(config);
 		}
@@ -68,12 +78,18 @@ public class DefaultAopProxyFactory implements AopProxyFactory, Serializable {
 	}
 
 	/**
+	 * 判断当前{@link AdvisedSupport}是否只有一个{@link org.springframework.aop.SpringProxy}需要实现，或者没有指定的接口需要实现
+	 *
 	 * Determine whether the supplied {@link AdvisedSupport} has only the
 	 * {@link org.springframework.aop.SpringProxy} interface specified
 	 * (or no proxy interfaces specified at all).
 	 */
 	private boolean hasNoUserSuppliedProxyInterfaces(AdvisedSupport config) {
+
+		// 获取所有代理配置中，代理需要实现的接口
 		Class<?>[] ifcs = config.getProxiedInterfaces();
+
+		// 如果没有代理需要实现的接口，或者只有一个SpringProxy（或子类/子接口），则返回true，否则说明有多个需要代理继承的接口
 		return (ifcs.length == 0 || (ifcs.length == 1 && SpringProxy.class.isAssignableFrom(ifcs[0])));
 	}
 

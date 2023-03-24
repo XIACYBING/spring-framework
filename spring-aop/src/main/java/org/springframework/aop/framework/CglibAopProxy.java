@@ -16,22 +16,10 @@
 
 package org.springframework.aop.framework;
 
-import java.io.Serializable;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.lang.reflect.UndeclaredThrowableException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.WeakHashMap;
-
 import org.aopalliance.aop.Advice;
 import org.aopalliance.intercept.MethodInvocation;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
 import org.springframework.aop.Advisor;
 import org.springframework.aop.AopInvocationException;
 import org.springframework.aop.PointcutAdvisor;
@@ -55,6 +43,17 @@ import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.ReflectionUtils;
+
+import java.io.Serializable;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.UndeclaredThrowableException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.WeakHashMap;
 
 /**
  * CGLIB-based {@link AopProxy} implementation for the Spring AOP framework.
@@ -99,8 +98,11 @@ class CglibAopProxy implements AopProxy, Serializable {
 	/** Keeps track of the Classes that we have validated for final methods. */
 	private static final Map<Class<?>, Boolean> validatedClasses = new WeakHashMap<>();
 
-
-	/** The configuration used to configure this proxy. */
+	/**
+	 * 代理配置
+	 *
+	 * The configuration used to configure this proxy.
+	 */
 	protected final AdvisedSupport advised;
 
 	@Nullable
@@ -168,12 +170,17 @@ class CglibAopProxy implements AopProxy, Serializable {
 
 			// 被代理的类成为proxy的父类
 			Class<?> proxySuperClass = rootClass;
+
 			// 如果被代理的类已经是CGLIB代理过的类，则进入以下的处理
 			if (rootClass.getName().contains(ClassUtils.CGLIB_CLASS_SEPARATOR)) {
+
 				// 获取实际的父类
 				proxySuperClass = rootClass.getSuperclass();
-				// 获取所有接口
+
+				// 获取被代理类所有实现的接口
 				Class<?>[] additionalInterfaces = rootClass.getInterfaces();
+
+				// 循环接口，添加到代理配置advised中
 				for (Class<?> additionalInterface : additionalInterfaces) {
 					// 记录这些接口
 					this.advised.addInterface(additionalInterface);
@@ -181,13 +188,15 @@ class CglibAopProxy implements AopProxy, Serializable {
 			}
 
 			// Validate the class, writing log messages as necessary.
-			// 验证类实例，写入相关日志
+			// 验证类实例，打印相关日志
 			validateClassIfNecessary(proxySuperClass, classLoader);
 
 			// Configure CGLIB Enhancer...
 			// 创建默认的动态代理器
 			Enhancer enhancer = createEnhancer();
 			if (classLoader != null) {
+
+				// 设置类加载器
 				enhancer.setClassLoader(classLoader);
 				// todo 此处暂时不懂为什么
 				if (classLoader instanceof SmartClassLoader &&
@@ -195,26 +204,35 @@ class CglibAopProxy implements AopProxy, Serializable {
 					enhancer.setUseCache(false);
 				}
 			}
+
 			// 设置代理类的父类（即被代理类）、被代理类的相关接口、动态类命名规则和相关生成策略
 			enhancer.setSuperclass(proxySuperClass);
 			enhancer.setInterfaces(AopProxyUtils.completeProxiedInterfaces(this.advised));
 			enhancer.setNamingPolicy(SpringNamingPolicy.INSTANCE);
 			enhancer.setStrategy(new ClassLoaderAwareGeneratorStrategy(classLoader));
 
-			// 获取当前类所需的拦截器数组
+			// 获取当前类所需的回调数组
 			Callback[] callbacks = getCallbacks(rootClass);
 			Class<?>[] types = new Class<?>[callbacks.length];
-			// 获取每个拦截器的类型，组成数组
+
+			// 获取每个回调的类型，组成数组
 			for (int x = 0; x < types.length; x++) {
 				types[x] = callbacks[x].getClass();
 			}
+
+			// 设置回调过滤器和回调类型数组
 			// fixedInterceptorMap only populated at this point, after getCallbacks call above
 			enhancer.setCallbackFilter(new ProxyCallbackFilter(
 					this.advised.getConfigurationOnlyCopy(), this.fixedInterceptorMap, this.fixedInterceptorOffset));
 			enhancer.setCallbackTypes(types);
 
+			// 代理会进行的方法拦截，走的应该是当前类的内部类CglibMethodInvocation的proceed方法
+			// 但是最终走的是org.springframework.aop.framework.ReflectiveMethodInvocation.proceed
+			// 这方面CGLIB和JDK最终都是一样的
+
+
 			// Generate the proxy class and create a proxy instance.
-			// 根据enhancer和拦截器数组创建代理，其实就是根据两个全局属性判断怎么创建代理
+			// 根据enhancer和回调数组创建代理，其实就是根据两个全局属性判断怎么创建代理
 			return createProxyClassAndInstance(enhancer, callbacks);
 		}
 		catch (CodeGenerationException | IllegalArgumentException ex) {
@@ -230,7 +248,11 @@ class CglibAopProxy implements AopProxy, Serializable {
 
 	protected Object createProxyClassAndInstance(Enhancer enhancer, Callback[] callbacks) {
 		enhancer.setInterceptDuringConstruction(false);
+
+		// 设置回调
 		enhancer.setCallbacks(callbacks);
+
+		// 创建代理对象
 		return (this.constructorArgs != null && this.constructorArgTypes != null ?
 				enhancer.create(this.constructorArgTypes, this.constructorArgs) :
 				enhancer.create());
@@ -252,8 +274,12 @@ class CglibAopProxy implements AopProxy, Serializable {
 		if (logger.isWarnEnabled()) {
 			synchronized (validatedClasses) {
 				if (!validatedClasses.containsKey(proxySuperClass)) {
+
+					// 验证proxySuperClass的方法，仅打印日志
 					doValidateClass(proxySuperClass, proxyClassLoader,
 							ClassUtils.getAllInterfacesForClassAsSet(proxySuperClass));
+
+					// 设置缓存
 					validatedClasses.put(proxySuperClass, Boolean.TRUE);
 				}
 			}
@@ -265,11 +291,21 @@ class CglibAopProxy implements AopProxy, Serializable {
 	 * methods across ClassLoaders, and writes warnings to the log for each one found.
 	 */
 	private void doValidateClass(Class<?> proxySuperClass, @Nullable ClassLoader proxyClassLoader, Set<Class<?>> ifcs) {
+
+		// Object类型说明已经校验到最高层
 		if (proxySuperClass != Object.class) {
+
+			// 获取当前类的所有方法
 			Method[] methods = proxySuperClass.getDeclaredMethods();
+
+			// 循环方法
 			for (Method method : methods) {
 				int mod = method.getModifiers();
+
+				// 非静态非私有的方法
 				if (!Modifier.isStatic(mod) && !Modifier.isPrivate(mod)) {
+
+					// 非静态非私有的final方法，打印日志记录
 					if (Modifier.isFinal(mod)) {
 						if (logger.isInfoEnabled() && implementsInterface(method, ifcs)) {
 							logger.info("Unable to proxy interface-implementing method [" + method + "] because " +
@@ -281,6 +317,9 @@ class CglibAopProxy implements AopProxy, Serializable {
 									"might lead to NPEs against uninitialized fields in the proxy instance.");
 						}
 					}
+
+					// 非静态非私有非公开非保护的方法，且类加载器非当前指定的proxyClassLoader，这种方法无法代理
+					// 打印相关的debug日志进行提醒：如果要代理这种方法，声明方法为public或protected
 					else if (logger.isDebugEnabled() && !Modifier.isPublic(mod) && !Modifier.isProtected(mod) &&
 							proxyClassLoader != null && proxySuperClass.getClassLoader() != proxyClassLoader) {
 						logger.debug("Method [" + method + "] is package-visible across different ClassLoaders " +
@@ -289,6 +328,8 @@ class CglibAopProxy implements AopProxy, Serializable {
 					}
 				}
 			}
+
+			// 校验父类
 			doValidateClass(proxySuperClass.getSuperclass(), proxyClassLoader, ifcs);
 		}
 	}
@@ -699,6 +740,7 @@ class CglibAopProxy implements AopProxy, Serializable {
 				// Get as late as possible to minimize the time we "own" the target, in case it comes from a pool...
 				target = targetSource.getTarget();
 				Class<?> targetClass = (target != null ? target.getClass() : null);
+
 				// 获取拦截器链，拦截器顺序按链路顺序
 				List<Object> chain = this.advised.getInterceptorsAndDynamicInterceptionAdvice(method, targetClass);
 				Object retVal;

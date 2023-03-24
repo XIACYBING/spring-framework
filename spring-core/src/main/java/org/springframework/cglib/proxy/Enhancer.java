@@ -16,21 +16,6 @@
 
 package org.springframework.cglib.proxy;
 
-import java.lang.ref.WeakReference;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.security.ProtectionDomain;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.springframework.asm.ClassVisitor;
 import org.springframework.asm.Label;
 import org.springframework.asm.Type;
@@ -56,6 +41,21 @@ import org.springframework.cglib.core.Transformer;
 import org.springframework.cglib.core.TypeUtils;
 import org.springframework.cglib.core.VisibilityPredicate;
 import org.springframework.cglib.core.WeakCacheKey;
+
+import java.lang.ref.WeakReference;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.security.ProtectionDomain;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Generates dynamic subclasses to enable method interception. This
@@ -407,6 +407,8 @@ public class Enhancer extends AbstractClassGenerator {
 	}
 
 	/**
+	 * 必要时生成一个代理类的类对象，不会进行实例化
+	 *
 	 * Generate a new class if necessary and return it without creating a new instance.
 	 * This ignores any callbacks that have been set.
 	 * To create a new instance you will have to use reflection, and methods
@@ -560,7 +562,11 @@ public class Enhancer extends AbstractClassGenerator {
 	}
 
 	private Object createHelper() {
+
+		// 前置校验
 		preValidate();
+
+		// 生成key
 		Object key = KEY_FACTORY.newInstance((superclass != null) ? superclass.getName() : null,
 				ReflectUtils.getNames(interfaces),
 				filter == ALL_ZERO ? null : new WeakCacheKey<CallbackFilter>(filter),
@@ -569,8 +575,9 @@ public class Enhancer extends AbstractClassGenerator {
 				interceptDuringConstruction,
 				serialVersionUID);
 		this.currentKey = key;
-		Object result = super.create(key);
-		return result;
+
+		// 创建类对象
+		return super.create(key);
 	}
 
 	@Override
@@ -653,6 +660,7 @@ public class Enhancer extends AbstractClassGenerator {
 		CollectionUtils.filter(methods, new RejectModifierPredicate(Constants.ACC_FINAL));
 	}
 
+	@Override
 	public void generateClass(ClassVisitor v) throws Exception {
 		Class sc = (superclass == null) ? Object.class : superclass;
 
@@ -670,6 +678,7 @@ public class Enhancer extends AbstractClassGenerator {
 		getMethods(sc, interfaces, actualMethods, interfaceMethods, forcePublic);
 
 		List methods = CollectionUtils.transform(actualMethods, new Transformer() {
+			@Override
 			public Object transform(Object value) {
 				Method method = (Method) value;
 				int modifiers = Constants.ACC_FINAL
@@ -772,6 +781,7 @@ public class Enhancer extends AbstractClassGenerator {
 	 * @return newly created proxy instance
 	 * @throws Exception if something goes wrong
 	 */
+	@Override
 	protected Object firstInstance(Class type) throws Exception {
 		if (classOnly) {
 			return type;
@@ -781,6 +791,7 @@ public class Enhancer extends AbstractClassGenerator {
 		}
 	}
 
+	@Override
 	protected Object nextInstance(Object instance) {
 		EnhancerFactoryData data = (EnhancerFactoryData) instance;
 

@@ -16,11 +16,6 @@
 
 package org.springframework.aop.framework;
 
-import java.lang.reflect.Array;
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
-import java.util.Arrays;
-
 import org.springframework.aop.SpringProxy;
 import org.springframework.aop.TargetClassAware;
 import org.springframework.aop.TargetSource;
@@ -30,6 +25,11 @@ import org.springframework.core.DecoratingProxy;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
+
+import java.lang.reflect.Array;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+import java.util.Arrays;
 
 /**
  * Utility methods for AOP proxy factories.
@@ -117,23 +117,41 @@ public abstract class AopProxyUtils {
 	 * @see DecoratingProxy
 	 */
 	static Class<?>[] completeProxiedInterfaces(AdvisedSupport advised, boolean decoratingProxy) {
+
+		// 获取代理需要实现的接口集合
 		Class<?>[] specifiedInterfaces = advised.getProxiedInterfaces();
+
+		// 代理没有指定需要实现的接口的处理，则检查目标类是否接口，或目标类是否代理（提取目标类实现的代理）
 		if (specifiedInterfaces.length == 0) {
 			// No user-specified interfaces: check whether target class is an interface.
 			Class<?> targetClass = advised.getTargetClass();
 			if (targetClass != null) {
+
+				// 目标类是接口，直接设置到代理需要实现的接口
 				if (targetClass.isInterface()) {
 					advised.setInterfaces(targetClass);
 				}
+
+				// 如果目标类已经是个代理，则获取目标类实现的接口，设置到代理需要实现的接口中
 				else if (Proxy.isProxyClass(targetClass)) {
 					advised.setInterfaces(targetClass.getInterfaces());
 				}
+
+				// 获取当前代理需要实现的接口集合中
 				specifiedInterfaces = advised.getProxiedInterfaces();
 			}
 		}
+
+		// 代理需要实现的接口中，没有有SpringProxy的接口
 		boolean addSpringProxy = !advised.isInterfaceProxied(SpringProxy.class);
+
+		// 代理配置不需要防止被强转为Advised，且代理需要实现的接口中，不包含Advised
 		boolean addAdvised = !advised.isOpaque() && !advised.isInterfaceProxied(Advised.class);
+
+		// decoratingProxy为true，且代理需要实现的接口中，不包含DecoratingProxy
 		boolean addDecoratingProxy = (decoratingProxy && !advised.isInterfaceProxied(DecoratingProxy.class));
+
+		// 非用户指定的接口count，基于上面的三个条件自增计数
 		int nonUserIfcCount = 0;
 		if (addSpringProxy) {
 			nonUserIfcCount++;
@@ -144,8 +162,14 @@ public abstract class AopProxyUtils {
 		if (addDecoratingProxy) {
 			nonUserIfcCount++;
 		}
+
+		// 新建类对象数组，长度为代理类需要实现的接口数量 + 非用户指定的接口数量
 		Class<?>[] proxiedInterfaces = new Class<?>[specifiedInterfaces.length + nonUserIfcCount];
+
+		// 复制已有的代理类需要实现的接口数组
 		System.arraycopy(specifiedInterfaces, 0, proxiedInterfaces, 0, specifiedInterfaces.length);
+
+		// 根据条件，向proxiedInterfaces中增加SpringProxy、Advised和DecoratingProxy三个接口
 		int index = specifiedInterfaces.length;
 		if (addSpringProxy) {
 			proxiedInterfaces[index] = SpringProxy.class;

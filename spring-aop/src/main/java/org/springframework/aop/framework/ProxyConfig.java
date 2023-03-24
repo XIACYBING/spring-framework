@@ -16,9 +16,9 @@
 
 package org.springframework.aop.framework;
 
-import java.io.Serializable;
-
 import org.springframework.util.Assert;
+
+import java.io.Serializable;
 
 /**
  * Convenience superclass for configuration used in creating proxies,
@@ -33,11 +33,19 @@ public class ProxyConfig implements Serializable {
 	/** use serialVersionUID from Spring 1.2 for interoperability. */
 	private static final long serialVersionUID = -8409359707199703185L;
 
-
+	/**
+	 * 是否直接代理目标类
+	 *
+	 * true：使用CGLIB代理目标类，但如果目标类是一个接口，或者目标类已经是代理，则为相关的接口创建一个JDK代理
+	 * false：使用JDK代理正常代理相关的接口和目标类
+	 */
 	private boolean proxyTargetClass = false;
 
 	private boolean optimize = false;
 
+	/**
+	 * 是否应防止此配置创建的代理被强制转换为 {@link Advised}：true/是，false/否
+	 */
 	boolean opaque = false;
 
 	boolean exposeProxy = false;
@@ -46,6 +54,11 @@ public class ProxyConfig implements Serializable {
 
 
 	/**
+	 * 设置是否直接代理目标类，而不是只代理特定的接口。默认为“假”。
+	 * <p>将此设置为“true”以强制代理 TargetSource 公开的目标类。如果该目标类是一个接口，
+	 * 将为给定的接口创建一个 JDK 代理。如果该目标类是任何其他类，将为给定类创建一个 CGLIB 代理。
+	 * <p>注意：根据具体代理工厂的配置，如果没有指定接口（并且没有激活接口自动检测），代理目标类行为也将被应用。
+	 *
 	 * Set whether to proxy the target class directly, instead of just proxying
 	 * specific interfaces. Default is "false".
 	 * <p>Set this to "true" to force proxying for the TargetSource's exposed
@@ -101,6 +114,8 @@ public class ProxyConfig implements Serializable {
 	}
 
 	/**
+	 * 返回是否应防止此配置创建的代理被强制转换为 {@link Advised}。
+	 *
 	 * Return whether proxies created by this configuration should be
 	 * prevented from being cast to {@link Advised}.
 	 */

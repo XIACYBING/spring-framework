@@ -54,6 +54,8 @@ import java.lang.annotation.Target;
 public @interface Validated {
 
 	/**
+	 * 指定一个或多个需要校验的组
+	 *
 	 * Specify one or more validation groups to apply to the validation step
 	 * kicked off by this annotation.
 	 * <p>JSR-303 defines validation groups as custom annotations which an application declares

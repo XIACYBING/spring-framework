@@ -16,16 +16,16 @@
 
 package org.springframework.cglib.core;
 
+import org.springframework.asm.ClassReader;
+import org.springframework.cglib.core.internal.Function;
+import org.springframework.cglib.core.internal.LoadingCache;
+
 import java.lang.ref.WeakReference;
 import java.security.ProtectionDomain;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
-
-import org.springframework.asm.ClassReader;
-import org.springframework.cglib.core.internal.Function;
-import org.springframework.cglib.core.internal.LoadingCache;
 
 /**
  * Abstract class for all code-generating CGLIB utilities.
@@ -316,6 +316,8 @@ abstract public class AbstractClassGenerator<T> implements ClassGenerator {
 				}
 			}
 			this.key = key;
+
+			// 获取创建的对象，可能是Class，也可能不是 todo 方法很复杂，需要花时间解析
 			Object obj = data.get(this, getUseCache());
 			if (obj instanceof Class) {
 				return firstInstance((Class) obj);

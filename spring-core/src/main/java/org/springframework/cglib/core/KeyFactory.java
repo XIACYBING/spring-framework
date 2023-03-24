@@ -245,10 +245,12 @@ abstract public class KeyFactory {
 			this.multiplier = multiplier;
 		}
 
+		@Override
 		protected Object firstInstance(Class type) {
 			return ReflectUtils.newInstance(type);
 		}
 
+		@Override
 		protected Object nextInstance(Object instance) {
 			return instance;
 		}

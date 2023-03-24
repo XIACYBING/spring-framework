@@ -16,10 +16,10 @@
 
 package org.springframework.aop.framework;
 
+import org.springframework.util.Assert;
+
 import java.util.LinkedList;
 import java.util.List;
-
-import org.springframework.util.Assert;
 
 /**
  * Base class for proxy factories.
@@ -32,6 +32,9 @@ import org.springframework.util.Assert;
 @SuppressWarnings("serial")
 public class ProxyCreatorSupport extends AdvisedSupport {
 
+	/**
+	 * Aop代理工厂
+	 */
 	private AopProxyFactory aopProxyFactory;
 
 	private final List<AdvisedSupportListener> listeners = new LinkedList<>();
@@ -44,6 +47,8 @@ public class ProxyCreatorSupport extends AdvisedSupport {
 	 * Create a new ProxyCreatorSupport instance.
 	 */
 	public ProxyCreatorSupport() {
+
+		// ProxyFactory默认会调用父类的无参构造器，所以会生成this.aopProxyFactory
 		this.aopProxyFactory = new DefaultAopProxyFactory();
 	}
 

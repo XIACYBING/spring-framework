@@ -46,6 +46,8 @@ public interface TargetSource extends TargetClassAware {
 	Class<?> getTargetClass();
 
 	/**
+	 * 被标记为static的TargetSource，每次调用{@link #getTarget()}都会返回同一个对象，且每次使用完对象后无需调用{@link #releaseTarget}释放对象
+	 *
 	 * Will all calls to {@link #getTarget()} return the same object?
 	 * <p>In that case, there will be no need to invoke {@link #releaseTarget(Object)},
 	 * and the AOP framework can cache the return value of {@link #getTarget()}.

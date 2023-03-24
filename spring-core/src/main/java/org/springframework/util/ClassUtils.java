@@ -16,6 +16,8 @@
 
 package org.springframework.util;
 
+import org.springframework.lang.Nullable;
+
 import java.beans.Introspector;
 import java.io.Closeable;
 import java.io.Externalizable;
@@ -39,8 +41,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.StringJoiner;
-
-import org.springframework.lang.Nullable;
 
 /**
  * Miscellaneous {@code java.lang.Class} utility methods.
@@ -372,10 +372,14 @@ public abstract class ClassUtils {
 	 * (may be {@code null} in which case this method will always return {@code true})
 	 */
 	public static boolean isVisible(Class<?> clazz, @Nullable ClassLoader classLoader) {
+
+		// classLoader为空，直接返回true
 		if (classLoader == null) {
 			return true;
 		}
 		try {
+
+			// clazz的ClassLoader直接是当前的classLoader，直接返回
 			if (clazz.getClassLoader() == classLoader) {
 				return true;
 			}
@@ -384,6 +388,7 @@ public abstract class ClassUtils {
 			// Fall through to loadable check below
 		}
 
+		// 当前classLoader可以接在clazz，则返回true
 		// Visible if same Class can be loaded from given ClassLoader
 		return isLoadable(clazz, classLoader);
 	}
@@ -756,20 +761,31 @@ public abstract class ClassUtils {
 	 */
 	public static Set<Class<?>> getAllInterfacesForClassAsSet(Class<?> clazz, @Nullable ClassLoader classLoader) {
 		Assert.notNull(clazz, "Class must not be null");
+
+		// 如果类对象是个接口，且类是当前classLoader可以加载的，则直接返回当前接口的集合
 		if (clazz.isInterface() && isVisible(clazz, classLoader)) {
 			return Collections.singleton(clazz);
 		}
 		Set<Class<?>> interfaces = new LinkedHashSet<>();
 		Class<?> current = clazz;
 		while (current != null) {
+
+			// 获取当前类的所有接口，如果类是接口，也是返回类所继承的接口，不返回current本身
+			// 返回的类接口只是包含直接继承的那部分，即：extend语句后声明的部分
 			Class<?>[] ifcs = current.getInterfaces();
+
+			// 循环接口，判断接口对当前classLoader是可以加载的，则加入集合中
 			for (Class<?> ifc : ifcs) {
 				if (isVisible(ifc, classLoader)) {
 					interfaces.add(ifc);
 				}
 			}
+
+			// 获取当前接口的父类，继续循环，直到父类为空
 			current = current.getSuperclass();
 		}
+
+		// 返回接口集合
 		return interfaces;
 	}
 
