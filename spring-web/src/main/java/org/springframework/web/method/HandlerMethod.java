@@ -329,12 +329,18 @@ public class HandlerMethod {
 	 * the bean name is resolved before a {@link HandlerMethod} is created and returned.
 	 */
 	public HandlerMethod createWithResolvedBean() {
+
+		// 获取处理器
 		Object handler = this.bean;
+
+		// 如果处理器是个字符串，说明当前还是个beanId，需要去beanFactory中获取实际的bean
 		if (this.bean instanceof String) {
 			Assert.state(this.beanFactory != null, "Cannot resolve bean name without BeanFactory");
 			String beanName = (String) this.bean;
 			handler = this.beanFactory.getBean(beanName);
 		}
+
+		// 创建一个新的HandlerMethod并返回
 		return new HandlerMethod(this, handler);
 	}
 

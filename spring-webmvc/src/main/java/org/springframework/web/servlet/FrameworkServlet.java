@@ -988,6 +988,8 @@ public abstract class FrameworkServlet extends HttpServletBean implements Applic
 	protected final void processRequest(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException {
 
+		// 不管是何种类型的请求，都到此处处理
+
 		long startTime = System.currentTimeMillis();
 		Throwable failureCause = null;
 
@@ -1003,6 +1005,8 @@ public abstract class FrameworkServlet extends HttpServletBean implements Applic
 		initContextHolders(request, localeContext, requestAttributes);
 
 		try {
+
+			// 最终调用doService，进行请求的匹配和处理
 			doService(request, response);
 		}
 		catch (ServletException | IOException ex) {

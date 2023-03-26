@@ -940,6 +940,8 @@ public class DispatcherServlet extends FrameworkServlet {
 		}
 
 		try {
+
+			// 进行请求的调度
 			doDispatch(request, response);
 		}
 		finally {
@@ -1012,6 +1014,7 @@ public class DispatcherServlet extends FrameworkServlet {
 				processedRequest = checkMultipart(request);
 				multipartRequestParsed = (processedRequest != request);
 
+				// 获取请求映射的处理器
 				// Determine handler for the current request.
 				mappedHandler = getHandler(processedRequest);
 				if (mappedHandler == null) {
@@ -1019,6 +1022,8 @@ public class DispatcherServlet extends FrameworkServlet {
 					return;
 				}
 
+				// 获取处理器的适配器
+				// 比如常见的控制器请求一般走：RequestMappingHandlerAdapter
 				// Determine handler adapter for the current request.
 				HandlerAdapter ha = getHandlerAdapter(mappedHandler.getHandler());
 
@@ -1036,6 +1041,8 @@ public class DispatcherServlet extends FrameworkServlet {
 					return;
 				}
 
+				// 调用HandlerAdapter.handle，其实内部就是开始真正调用控制器方法，进行请求的处理
+				// 控制器请求最终走的是RequestMappingHandlerAdapter.handleInternal
 				// Actually invoke the handler.
 				mv = ha.handle(processedRequest, response, mappedHandler.getHandler());
 
@@ -1231,6 +1238,10 @@ public class DispatcherServlet extends FrameworkServlet {
 	protected HandlerExecutionChain getHandler(HttpServletRequest request) throws Exception {
 		if (this.handlerMappings != null) {
 			for (HandlerMapping mapping : this.handlerMappings) {
+
+				// 根据请求获取处理器
+				// 最终执行的是：org.springframework.web.servlet.handler.AbstractHandlerMapping.getHandler
+				// 对于常见的控制器请求映射，走的是：RequestMappingInfoHandlerMapping.getHandlerInternal -> AbstractHandlerMethodMapping.getHandlerInternal
 				HandlerExecutionChain handler = mapping.getHandler(request);
 				if (handler != null) {
 					return handler;

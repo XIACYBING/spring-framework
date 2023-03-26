@@ -22,6 +22,8 @@ import java.lang.reflect.Method;
 import org.springframework.lang.Nullable;
 
 /**
+ * 参数名称获取的接口，参数名称并不一定总能被获取到，但是可以尝试多种不同的策略，从而获取到参数名称
+ *
  * Interface to discover parameter names for methods and constructors.
  *
  * <p>Parameter name discovery is not always possible, but various strategies are

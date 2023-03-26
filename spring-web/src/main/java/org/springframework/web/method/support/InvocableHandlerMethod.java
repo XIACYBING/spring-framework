@@ -131,10 +131,13 @@ public class InvocableHandlerMethod extends HandlerMethod {
 	public Object invokeForRequest(NativeWebRequest request, @Nullable ModelAndViewContainer mavContainer,
 			Object... providedArgs) throws Exception {
 
+		// 获取控制器方法参数
 		Object[] args = getMethodArgumentValues(request, mavContainer, providedArgs);
 		if (logger.isTraceEnabled()) {
 			logger.trace("Arguments: " + Arrays.toString(args));
 		}
+
+		// 实际执行控制器方法
 		return doInvoke(args);
 	}
 
@@ -147,23 +150,43 @@ public class InvocableHandlerMethod extends HandlerMethod {
 	protected Object[] getMethodArgumentValues(NativeWebRequest request, @Nullable ModelAndViewContainer mavContainer,
 			Object... providedArgs) throws Exception {
 
+		// 获取控制器方法声明的参数
 		MethodParameter[] parameters = getMethodParameters();
+
+		// 如果为空，直接返回
 		if (ObjectUtils.isEmpty(parameters)) {
 			return EMPTY_ARGS;
 		}
 
+		// 否则需要将请求数据处理成对应参数
+
+		// 新建参数数组
 		Object[] args = new Object[parameters.length];
+
+		// 循环控制器声明参数
 		for (int i = 0; i < parameters.length; i++) {
+
+			// 获取控制器声明参数
 			MethodParameter parameter = parameters[i];
+
+			// 绑定参数名称获取器
 			parameter.initParameterNameDiscovery(this.parameterNameDiscoverer);
+
+			// 如果外部有直接提供参数数组provideArgs，则可以尝试直接从外部提供的参数中获取需要的方法参数
 			args[i] = findProvidedArgument(parameter, providedArgs);
+
+			// 如果获取到了，continue获取下一个参数
 			if (args[i] != null) {
 				continue;
 			}
+
+			// 如果当前的参数解析器中，不支持解析当前参数，则直接抛出异常
 			if (!this.resolvers.supportsParameter(parameter)) {
 				throw new IllegalStateException(formatArgumentError(parameter, "No suitable resolver"));
 			}
 			try {
+
+				// 否则调用参数解析器解析参数
 				args[i] = this.resolvers.resolveArgument(parameter, mavContainer, request, this.dataBinderFactory);
 			}
 			catch (Exception ex) {
@@ -177,6 +200,8 @@ public class InvocableHandlerMethod extends HandlerMethod {
 				throw ex;
 			}
 		}
+
+		// 返回解析完成的参数
 		return args;
 	}
 
@@ -187,6 +212,8 @@ public class InvocableHandlerMethod extends HandlerMethod {
 	protected Object doInvoke(Object... args) throws Exception {
 		ReflectionUtils.makeAccessible(getBridgedMethod());
 		try {
+
+			// 调用方法
 			return getBridgedMethod().invoke(getBean(), args);
 		}
 		catch (IllegalArgumentException ex) {

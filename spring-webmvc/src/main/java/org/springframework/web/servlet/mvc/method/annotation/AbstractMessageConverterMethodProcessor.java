@@ -182,11 +182,14 @@ public abstract class AbstractMessageConverterMethodProcessor extends AbstractMe
 		Class<?> valueType;
 		Type targetType;
 
+		// 如果是字符串，则直接处理
 		if (value instanceof CharSequence) {
 			body = value.toString();
 			valueType = String.class;
 			targetType = String.class;
 		}
+
+		// 否则获取返回值类型和目标类型
 		else {
 			body = value;
 			valueType = getReturnValueType(body, returnType);

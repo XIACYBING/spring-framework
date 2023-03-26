@@ -113,11 +113,21 @@ public class HandlerMethodArgumentResolverComposite implements HandlerMethodArgu
 	public Object resolveArgument(MethodParameter parameter, @Nullable ModelAndViewContainer mavContainer,
 			NativeWebRequest webRequest, @Nullable WebDataBinderFactory binderFactory) throws Exception {
 
+		// 获取参数解析器
 		HandlerMethodArgumentResolver resolver = getArgumentResolver(parameter);
+
+		// 如果为空，直接抛出异常
 		if (resolver == null) {
 			throw new IllegalArgumentException("Unsupported parameter type [" +
 					parameter.getParameterType().getName() + "]. supportsParameter should be called first.");
 		}
+
+		// 解析参数，不同类型的参数调用不同的解析器：
+		// @RequestParam：RequestParamMapMethodArgumentResolver
+		// @RequestBody：RequestResponseBodyMethodProcessor
+		// @RequestPart：RequestPartMethodArgumentResolver
+		// @PathVariable：PathVariableMapMethodArgumentResolver
+		// ....
 		return resolver.resolveArgument(parameter, mavContainer, webRequest, binderFactory);
 	}
 
@@ -127,9 +137,17 @@ public class HandlerMethodArgumentResolverComposite implements HandlerMethodArgu
 	 */
 	@Nullable
 	private HandlerMethodArgumentResolver getArgumentResolver(MethodParameter parameter) {
+
+		// 根据方法参数获取参数解析器缓存
 		HandlerMethodArgumentResolver result = this.argumentResolverCache.get(parameter);
+
+		// 如果为空，则需要循环解析器获取
 		if (result == null) {
+
+			// 循环解析器
 			for (HandlerMethodArgumentResolver resolver : this.argumentResolvers) {
+
+				// 判断当前解析器是否支持当前参数，如果直接，则赋值给result，并放入缓存，中断循环
 				if (resolver.supportsParameter(parameter)) {
 					result = resolver;
 					this.argumentResolverCache.put(parameter, result);
@@ -137,6 +155,8 @@ public class HandlerMethodArgumentResolverComposite implements HandlerMethodArgu
 				}
 			}
 		}
+
+		// 获取获取到的解析器
 		return result;
 	}
 
