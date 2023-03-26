@@ -66,6 +66,8 @@ public class MethodValidationInterceptor implements MethodInterceptor {
 	 * Create a new MethodValidationInterceptor using a default JSR-303 validator underneath.
 	 */
 	public MethodValidationInterceptor() {
+
+		// 使用默认的validator
 		this(Validation.buildDefaultValidatorFactory());
 	}
 
@@ -88,36 +90,54 @@ public class MethodValidationInterceptor implements MethodInterceptor {
 
 	@Override
 	public Object invoke(MethodInvocation invocation) throws Throwable {
+
+		// 避免对FactoryBean.getObjectType/isSingleton进行校验
 		// Avoid Validator invocation on FactoryBean.getObjectType/isSingleton
 		if (isFactoryBeanMetadataMethod(invocation.getMethod())) {
 			return invocation.proceed();
 		}
 
+		// 确认当前要校验的group类型数组
 		Class<?>[] groups = determineValidationGroups(invocation);
 
+		// 获取可执行校验器，可用来校验方法执行情况
 		// Standard Bean Validation 1.1 API
 		ExecutableValidator execVal = this.validator.forExecutables();
+
+		// 获取当前需要执行的方法
 		Method methodToValidate = invocation.getMethod();
+
+		// 新建违反限制的集合
 		Set<ConstraintViolation<Object>> result;
 
 		try {
+
+			// 校验方法参数
 			result = execVal.validateParameters(
 					invocation.getThis(), methodToValidate, invocation.getArguments(), groups);
 		}
 		catch (IllegalArgumentException ex) {
+
+			// 可能存在接口泛型和实际实现类型的一些差异，需要获取桥接方法/bridged method，再次执行
 			// Probably a generic type mismatch between interface and impl as reported in SPR-12237 / HV-1011
 			// Let's try to find the bridged method on the implementation class...
 			methodToValidate = BridgeMethodResolver.findBridgedMethod(
 					ClassUtils.getMostSpecificMethod(invocation.getMethod(), invocation.getThis().getClass()));
+
+			//  再次校验入参
 			result = execVal.validateParameters(
 					invocation.getThis(), methodToValidate, invocation.getArguments(), groups);
 		}
+
+		// 入参校验存在异常，直接抛出异常
 		if (!result.isEmpty()) {
 			throw new ConstraintViolationException(result);
 		}
 
+		// 如果没有异常，直接执行方法
 		Object returnValue = invocation.proceed();
 
+		// 校验方法返回值，如果有异常，则抛出
 		result = execVal.validateReturnValue(invocation.getThis(), methodToValidate, returnValue, groups);
 		if (!result.isEmpty()) {
 			throw new ConstraintViolationException(result);
@@ -127,14 +147,20 @@ public class MethodValidationInterceptor implements MethodInterceptor {
 	}
 
 	private boolean isFactoryBeanMetadataMethod(Method method) {
+
+		// 获取方法的声明类
 		Class<?> clazz = method.getDeclaringClass();
 
+		// 如果声明类是接口
 		// Call from interface-based proxy handle, allowing for an efficient check?
 		if (clazz.isInterface()) {
+
+			// 声明类是FactoryBean或SmartFactoryBean，且方法非getObject，则返回true
 			return ((clazz == FactoryBean.class || clazz == SmartFactoryBean.class) &&
 					!method.getName().equals("getObject"));
 		}
 
+		// 判断声明类是否FactoryBean或SmartFactoryBean的实现类
 		// Call from CGLIB proxy handle, potentially implementing a FactoryBean method?
 		Class<?> factoryBeanType = null;
 		if (SmartFactoryBean.class.isAssignableFrom(clazz)) {
@@ -143,6 +169,8 @@ public class MethodValidationInterceptor implements MethodInterceptor {
 		else if (FactoryBean.class.isAssignableFrom(clazz)) {
 			factoryBeanType = FactoryBean.class;
 		}
+
+		// 声明类是FactoryBean或SmartFactoryBean的实现类，且方法非getObject，且方法也在FactoryBean或SmartFactoryBean中声明了，则返回true
 		return (factoryBeanType != null && !method.getName().equals("getObject") &&
 				ClassUtils.hasMethod(factoryBeanType, method));
 	}
@@ -155,10 +183,14 @@ public class MethodValidationInterceptor implements MethodInterceptor {
 	 * @return the applicable validation groups as a Class array
 	 */
 	protected Class<?>[] determineValidationGroups(MethodInvocation invocation) {
+
+		// 获取方法上的注解信息，为空则获取类上的注解信息
 		Validated validatedAnn = AnnotationUtils.findAnnotation(invocation.getMethod(), Validated.class);
 		if (validatedAnn == null) {
 			validatedAnn = AnnotationUtils.findAnnotation(invocation.getThis().getClass(), Validated.class);
 		}
+
+		// 获取注解上的校验分组
 		return (validatedAnn != null ? validatedAnn.value() : new Class<?>[0]);
 	}
 

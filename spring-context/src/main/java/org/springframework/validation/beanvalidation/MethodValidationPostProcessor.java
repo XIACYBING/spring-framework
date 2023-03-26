@@ -63,6 +63,7 @@ public class MethodValidationPostProcessor extends AbstractBeanFactoryAwareAdvis
 
 	private Class<? extends Annotation> validatedAnnotationType = Validated.class;
 
+	/** 验证器 */
 	@Nullable
 	private Validator validator;
 
@@ -77,6 +78,8 @@ public class MethodValidationPostProcessor extends AbstractBeanFactoryAwareAdvis
 	 */
 	public void setValidatedAnnotationType(Class<? extends Annotation> validatedAnnotationType) {
 		Assert.notNull(validatedAnnotationType, "'validatedAnnotationType' must not be null");
+
+		// 设置校验注解，默认是Validated
 		this.validatedAnnotationType = validatedAnnotationType;
 	}
 
@@ -110,7 +113,11 @@ public class MethodValidationPostProcessor extends AbstractBeanFactoryAwareAdvis
 
 	@Override
 	public void afterPropertiesSet() {
+
+		// 根据校验注解生成切点，第二个布尔参数代表是否检验继承
 		Pointcut pointcut = new AnnotationMatchingPointcut(this.validatedAnnotationType, true);
+
+		// 生成advisor，该advisor最终会被织入代理中
 		this.advisor = new DefaultPointcutAdvisor(pointcut, createMethodValidationAdvice(this.validator));
 	}
 
@@ -123,6 +130,8 @@ public class MethodValidationPostProcessor extends AbstractBeanFactoryAwareAdvis
 	 * @since 4.2
 	 */
 	protected Advice createMethodValidationAdvice(@Nullable Validator validator) {
+
+		// 生成advice，如果有传入validator则使用，如果没有，则自己生成
 		return (validator != null ? new MethodValidationInterceptor(validator) : new MethodValidationInterceptor());
 	}
 

@@ -227,16 +227,20 @@ public abstract class AopUtils {
 		Assert.notNull(pc, "Pointcut must not be null");
 		// 进入切点增强器判断，同样，第一时间是进行ClassFilter的匹配
 		// Pointcut的实现有多种，这里只看AspectJExpressionPointCut，该实现中返回的ClassFilter是自身
+		// 对应@Transactional/@Validated这一类配置的Pointcut，对应的实现类是AnnotationMatchingPointcut
 		if (!pc.getClassFilter().matches(targetClass)) {
 			return false;
 		}
 
 		// 如果methodMatcher是一个特殊的TRUE实例，那就意味着可以匹配类下的所有方法，直接返回true即可
+		// 这种情况一般应用在那些注解在类上声明后就代表所有方法都有应用的场景，比如@Transactional/@Validated注解
 		MethodMatcher methodMatcher = pc.getMethodMatcher();
 		if (methodMatcher == MethodMatcher.TRUE) {
 			// No need to iterate the methods if we're matching any method anyway...
 			return true;
 		}
+
+		// 否则还需要判断方法是否匹配
 
 		// 否则还需要匹配方法是否符合要求
 		IntroductionAwareMethodMatcher introductionAwareMethodMatcher = null;

@@ -33,8 +33,14 @@ import org.springframework.util.Assert;
  */
 public class AnnotationClassFilter implements ClassFilter {
 
+	/**
+	 * 要校验的注解类型
+	 */
 	private final Class<? extends Annotation> annotationType;
 
+	/**
+	 * 是否校验注解继承
+	 */
 	private final boolean checkInherited;
 
 
@@ -63,8 +69,13 @@ public class AnnotationClassFilter implements ClassFilter {
 
 	@Override
 	public boolean matches(Class<?> clazz) {
-		return (this.checkInherited ? AnnotatedElementUtils.hasAnnotation(clazz, this.annotationType) :
-				clazz.isAnnotationPresent(this.annotationType));
+		return (this.checkInherited
+
+			// 如果要校验继承，则判断clazz，是否直接或间接（声明的注解继承了annotationType类型的注解）
+			? AnnotatedElementUtils.hasAnnotation(clazz, this.annotationType)
+
+			// 否则只需要校验类上是否声明了对应注解
+			: clazz.isAnnotationPresent(this.annotationType));
 	}
 
 	@Override

@@ -508,6 +508,8 @@ public abstract class AnnotatedElementUtils {
 	}
 
 	/**
+	 * true：element有声明annotationType类型的注解，或element上声明的注解有继承annotationType类型的注解
+	 *
 	 * Determine if an annotation of the specified {@code annotationType}
 	 * is <em>available</em> on the supplied {@link AnnotatedElement} or
 	 * within the annotation hierarchy <em>above</em> the specified element.
