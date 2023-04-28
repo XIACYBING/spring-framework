@@ -641,12 +641,19 @@ public class CommonAnnotationBeanPostProcessor extends InitDestroyAnnotationBean
 			this.lookupType = resourceType;
 			String lookupValue = resource.lookup();
 			this.mappedName = (StringUtils.hasLength(lookupValue) ? lookupValue : resource.mappedName());
+
+			// 获取对应Field/Method/Class上的Lazy注解
 			Lazy lazy = ae.getAnnotation(Lazy.class);
+
+			// Lazy注解不为空，且配置的value为true
 			this.lazyLookup = (lazy != null && lazy.value());
 		}
 
 		@Override
 		protected Object getResourceToInject(Object target, @Nullable String requestingBeanName) {
+
+			// 获取用于注入的元素：如果lazyLookup为true，则构建一个代理，代理是TargetSource的实现类，其中的getTarget是通过调用当前getResource方法实现
+			// 从而保证，当用户真正调用对应代理时，才会通过getResource方法去获取到我们实际要使用的资源
 			return (this.lazyLookup ? buildLazyResourceProxy(this, requestingBeanName) :
 					getResource(this, requestingBeanName));
 		}
