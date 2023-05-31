@@ -17,6 +17,10 @@
 package org.springframework.beans.factory;
 
 /**
+ * {@link Aware}接口主要用来标记某些bean有资格获取Spring容器内的某些资源，和{@link org.springframework.beans.factory.annotation.Autowired}
+ * 相比，有些资源是{@link org.springframework.beans.factory.annotation.Autowired}获取不到的，
+ * 比如{@link org.springframework.context.support.ApplicationContextAwareProcessor#embeddedValueResolver}
+ *
  * A marker superinterface indicating that a bean is eligible to be notified by the
  * Spring container of a particular framework object through a callback-style method.
  * The actual method signature is determined by individual subinterfaces but should

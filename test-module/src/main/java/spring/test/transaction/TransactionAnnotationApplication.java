@@ -2,8 +2,10 @@ package spring.test.transaction;
 
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.transaction.interceptor.TransactionInterceptor;
 
 /**
+ * @see TransactionInterceptor
  * @author wang.yubin
  * @since 2023/3/7
  */

@@ -630,6 +630,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 			populateBean(beanName, mbd, instanceWrapper);
 
 			// 执行bean的初始化逻辑
+			// 也会进行BeanPostProcessor的postProcessAfterInitialization处理，为此生成相关的代理
 			exposedObject = initializeBean(beanName, exposedObject, mbd);
 		}
 		catch (Throwable ex) {
@@ -643,11 +644,17 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		}
 
 		if (earlySingletonExposure) {
+
+			// 按顺序从三级缓存 -> 二级缓存 -> 一级缓存获取对象，循环依赖后的代理对象就是在此获取并替换成exposedObject
+			// 在循环依赖流程中，从当前方法中可以获取代理后的对象，并替换exposedObject
 			Object earlySingletonReference = getSingleton(beanName, false);
 			if (earlySingletonReference != null) {
 				if (exposedObject == bean) {
 					exposedObject = earlySingletonReference;
 				}
+
+				// 校验依赖，比如@Async使用的AsyncAnnotationBeanPostProcessor，会在initializeBean中生成代理，导致exposedObject !=
+				// bean，最终进入依赖校验，如果有循环依赖的则会报错
 				else if (!this.allowRawInjectionDespiteWrapping && hasDependentBean(beanName)) {
 					String[] dependentBeans = getDependentBeans(beanName);
 					Set<String> actualDependentBeans = new LinkedHashSet<>(dependentBeans.length);
@@ -1875,6 +1882,9 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		if (mbd == null || !mbd.isSynthetic()) {
 
 			// 应用bean初始化前的相关处理方法，@PostConstruct在这里处理
+			// 或者各种Aware的处理：
+			// ApplicationContextAwareProcessor：用于注入应用上下文的相关资源，比如Environment（EnvironmentAware）、ApplicationContext（ApplicationContextAware）...
+			// ServletContextAwareProcessor：用于注入Servlet上下文的相关资源，比如ServletContext（ServletContextAware）和ServletConfig（ServletConfigAware）
 			wrappedBean = applyBeanPostProcessorsBeforeInitialization(wrappedBean, beanName);
 		}
 
@@ -1890,6 +1900,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		if (mbd == null || !mbd.isSynthetic()) {
 
 			// 应用bean初始化后的相关处理方法
+			// 比如AOP生成代理对象，或为@Async生成代理对象：后者会出现一些问题
 			wrappedBean = applyBeanPostProcessorsAfterInitialization(wrappedBean, beanName);
 		}
 

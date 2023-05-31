@@ -133,6 +133,10 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 
 	private final Set<String> targetSourcedBeans = Collections.newSetFromMap(new ConcurrentHashMap<>(16));
 
+	/**
+	 * 被早期代理的bean，对应的原始实例会存储在这
+	 * A依赖B，B依赖A，A先初始化，B在获取A实例时，需要生成A代理，这时候需要把A实例放入{@link #earlyProxyReferences}
+	 */
 	private final Map<Object, Object> earlyProxyReferences = new ConcurrentHashMap<>(16);
 
 	private final Map<Object, Class<?>> proxyTypes = new ConcurrentHashMap<>(16);

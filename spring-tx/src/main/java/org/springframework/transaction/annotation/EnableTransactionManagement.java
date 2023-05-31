@@ -17,7 +17,6 @@
 package org.springframework.transaction.annotation;
 
 import org.springframework.context.annotation.AdviceMode;
-import org.springframework.context.annotation.ConfigurationClassParser;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.Ordered;
 
@@ -150,7 +149,7 @@ import java.lang.annotation.Target;
  * There is no proxy involved in such a scenario; local calls will be intercepted as well.
  *
  * 当前注解会引入{@link TransactionManagementConfigurationSelector}，该selector
- * 会在{@link ConfigurationClassParser#processImports}的处理中，引入{@link ProxyTransactionManagementConfiguration}
+ * 会在{@link org.springframework.context.annotation.ConfigurationClassParser#processImports}的处理中，引入{@link ProxyTransactionManagementConfiguration}
  * ，该类会配置相关的事务增强器到容器中，通过AOP扫描并代理所有需要被代理的类
  *
  * @author Chris Beams

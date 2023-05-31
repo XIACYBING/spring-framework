@@ -77,7 +77,13 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 	/** Cache of singleton objects: bean name to bean instance. */
 	private final Map<String, Object> singletonObjects = new ConcurrentHashMap<>(256);
 
-	/** Cache of singleton factories: bean name to ObjectFactory. */
+	/**
+	 * 第三级缓存，ObjectFactory让某些对象只有在需要的时候才会进行某些操作，这也是Spring的核心思想之一
+	 *
+	 * todo 找到相关文档说明，并给出更白话的说明
+	 *
+	 * Cache of singleton factories: bean name to ObjectFactory.
+	 */
 	private final Map<String, ObjectFactory<?>> singletonFactories = new HashMap<>(16);
 
 	/** Cache of early singleton objects: bean name to bean instance. */
@@ -197,7 +203,8 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 					// 三级缓存中获取对应bean的ObjectFactory
 					ObjectFactory<?> singletonFactory = this.singletonFactories.get(beanName);
 
-					// 对应的ObjectFactory不为空时，调用getObject获取，在循环依赖场景中，调用getObject时会
+					// 对应的ObjectFactory不为空时，调用getObject获取，
+					// 在循环依赖场景中，调用getObject时会通过getEarlyBeanReference提前包装对象，保证某些注入到其他bean中的对象是”最终对象“（被动态代理/AOP包装过的对象）
 					if (singletonFactory != null) {
 						singletonObject = singletonFactory.getObject();
 						this.earlySingletonObjects.put(beanName, singletonObject);
