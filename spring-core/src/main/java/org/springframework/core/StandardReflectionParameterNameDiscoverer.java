@@ -16,11 +16,11 @@
 
 package org.springframework.core;
 
+import org.springframework.lang.Nullable;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-
-import org.springframework.lang.Nullable;
 
 /**
  * {@link ParameterNameDiscoverer} implementation which uses JDK 8's reflection facilities
@@ -50,6 +50,9 @@ public class StandardReflectionParameterNameDiscoverer implements ParameterNameD
 		String[] parameterNames = new String[parameters.length];
 		for (int i = 0; i < parameters.length; i++) {
 			Parameter param = parameters[i];
+
+			// 如果没有真实的参数名称，则直接返回空
+			// arg0这一类的参数名称，是Executable.synthesizeAllParams自行生成的，不算真实的参数名称
 			if (!param.isNamePresent()) {
 				return null;
 			}

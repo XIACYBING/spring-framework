@@ -40,10 +40,17 @@ package org.springframework.core;
 public class DefaultParameterNameDiscoverer extends PrioritizedParameterNameDiscoverer {
 
 	public DefaultParameterNameDiscoverer() {
+
+		// Kotlin的支持
 		if (KotlinDetector.isKotlinReflectPresent() && !GraalDetector.inImageCode()) {
 			addDiscoverer(new KotlinReflectionParameterNameDiscoverer());
 		}
+
+		// 标准反射参数名称解析器：只有编译时未开启parameters，才能获取到参数名称
+		// 否则只能获取到Executable生成的默认参数名称（arg0、arg1...），这不是我们想要的，在当前解析器中只能返回null
 		addDiscoverer(new StandardReflectionParameterNameDiscoverer());
+
+		// LocalVariableTable参数名称解析器：从字节码的LocalVariableTable中获取参数名称
 		addDiscoverer(new LocalVariableTableParameterNameDiscoverer());
 	}
 

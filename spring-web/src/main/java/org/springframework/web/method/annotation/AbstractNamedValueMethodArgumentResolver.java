@@ -16,11 +16,6 @@
 
 package org.springframework.web.method.annotation;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
-import javax.servlet.ServletException;
-
 import org.springframework.beans.ConversionNotSupportedException;
 import org.springframework.beans.TypeMismatchException;
 import org.springframework.beans.factory.config.BeanExpressionContext;
@@ -37,7 +32,13 @@ import org.springframework.web.context.request.RequestScope;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 
+import javax.servlet.ServletException;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 /**
+ * 提供根据名称获取值的通用逻辑，比如根据参数名称获取url上的值，请求上的header值或路径变量等数据
+ *
  * Abstract base class for resolving method arguments from a named value.
  * Request parameters, request headers, and path variables are examples of named
  * values. Each may have a name, a required flag, and a default value.
@@ -96,6 +97,7 @@ public abstract class AbstractNamedValueMethodArgumentResolver implements Handle
 	public final Object resolveArgument(MethodParameter parameter, @Nullable ModelAndViewContainer mavContainer,
 			NativeWebRequest webRequest, @Nullable WebDataBinderFactory binderFactory) throws Exception {
 
+		// 解析出参数名称
 		NamedValueInfo namedValueInfo = getNamedValueInfo(parameter);
 		MethodParameter nestedParameter = parameter.nestedIfOptional();
 
@@ -143,10 +145,20 @@ public abstract class AbstractNamedValueMethodArgumentResolver implements Handle
 	 * Obtain the named value for the given method parameter.
 	 */
 	private NamedValueInfo getNamedValueInfo(MethodParameter parameter) {
+
+		// 先获取缓存，如果有直接使用缓存
 		NamedValueInfo namedValueInfo = this.namedValueInfoCache.get(parameter);
+
+		// 如果缓存为空，则需要创建参数名称和参数值的数据对象
 		if (namedValueInfo == null) {
+
+			// 创建参数名称和参数值的数据对象，比如：RequestParamMethodArgumentResolver.createNamedValueInfo，从@RequestParam注解上获取参数名称
 			namedValueInfo = createNamedValueInfo(parameter);
+
+			// 根据入参的parameter更新参数信息
 			namedValueInfo = updateNamedValueInfo(parameter, namedValueInfo);
+
+			// 将结果放入缓存中
 			this.namedValueInfoCache.put(parameter, namedValueInfo);
 		}
 		return namedValueInfo;
@@ -165,8 +177,14 @@ public abstract class AbstractNamedValueMethodArgumentResolver implements Handle
 	 */
 	private NamedValueInfo updateNamedValueInfo(MethodParameter parameter, NamedValueInfo info) {
 		String name = info.name;
+
+		// 如果info中的参数名称为空，则需要从入参中的MethodParameter上获取参数名称
 		if (info.name.isEmpty()) {
+
+			// 获取参数名称，其实就是调用DefaultParameterNameDiscoverer解析方法的参数名称
 			name = parameter.getParameterName();
+
+			// 如果无法获取到参数名称，则抛出异常
 			if (name == null) {
 				throw new IllegalArgumentException(
 						"Name for argument type [" + parameter.getNestedParameterType().getName() +

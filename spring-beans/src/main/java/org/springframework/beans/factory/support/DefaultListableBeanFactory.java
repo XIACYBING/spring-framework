@@ -157,7 +157,14 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 	/** Resolver to use for checking if a bean definition is an autowire candidate. */
 	private AutowireCandidateResolver autowireCandidateResolver = SimpleAutowireCandidateResolver.INSTANCE;
 
-	/** Map from dependency type to corresponding autowired value. */
+	/**
+	 * 一些特殊维护的对象实例（factory/context），这些实例不会维护在Spring
+	 * 容器中，但如果容器内的实例有需要这些特殊实例时，又需要能够被获取到，所以由{@link #resolvableDependencies}集合来维护这些特殊实例，然后在相关方法中有兼容逻辑来保证能获取到相关的实例
+	 *
+	 * 需要注意的是，这些特殊维护的对象实例，仅支持作为依赖而去获取{@code resolveDependency}，而不支持通过{@code getBean}获取
+	 *
+	 * Map from dependency type to corresponding autowired value.
+	 */
 	private final Map<Class<?>, Object> resolvableDependencies = new ConcurrentHashMap<>(16);
 
 	/** Map of bean definition objects, keyed by bean name. */

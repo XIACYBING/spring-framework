@@ -16,6 +16,15 @@
 
 package org.springframework.core;
 
+import kotlin.Unit;
+import kotlin.reflect.KFunction;
+import kotlin.reflect.KParameter;
+import kotlin.reflect.jvm.ReflectJvmMapping;
+import org.springframework.lang.Nullable;
+import org.springframework.util.Assert;
+import org.springframework.util.ClassUtils;
+import org.springframework.util.ObjectUtils;
+
 import java.lang.annotation.Annotation;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Constructor;
@@ -29,16 +38,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Predicate;
-
-import kotlin.Unit;
-import kotlin.reflect.KFunction;
-import kotlin.reflect.KParameter;
-import kotlin.reflect.jvm.ReflectJvmMapping;
-
-import org.springframework.lang.Nullable;
-import org.springframework.util.Assert;
-import org.springframework.util.ClassUtils;
-import org.springframework.util.ObjectUtils;
 
 /**
  * Helper class that encapsulates the specification of a method parameter, i.e. a {@link Method}
@@ -702,23 +701,35 @@ public class MethodParameter {
 	 */
 	@Nullable
 	public String getParameterName() {
+
+		// 参数名称小于0，不处理
 		if (this.parameterIndex < 0) {
 			return null;
 		}
+
+		// 获取参数名称发现器，一般是DefaultParameterNameDiscoverer
 		ParameterNameDiscoverer discoverer = this.parameterNameDiscoverer;
 		if (discoverer != null) {
 			String[] parameterNames = null;
+
+			// 如果executable的不同类型调用不同方法调用的是DefaultParameterNameDiscoverer的父类PrioritizedParameterNameDiscoverer的相关方法
 			if (this.executable instanceof Method) {
 				parameterNames = discoverer.getParameterNames((Method) this.executable);
 			}
 			else if (this.executable instanceof Constructor) {
 				parameterNames = discoverer.getParameterNames((Constructor<?>) this.executable);
 			}
+
+			// 获取到参数名称数组，获取当前MethodParameter需要的参数名称即可
 			if (parameterNames != null) {
 				this.parameterName = parameterNames[this.parameterIndex];
 			}
+
+			// 参数名称已经获取到，不再关联发现器	todo 为啥？
 			this.parameterNameDiscoverer = null;
 		}
+
+		// 返回参数名称
 		return this.parameterName;
 	}
 

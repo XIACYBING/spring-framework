@@ -16,14 +16,16 @@
 
 package org.springframework.core;
 
+import org.springframework.lang.Nullable;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.springframework.lang.Nullable;
-
 /**
+ * 按照参数名称发现器集合{@link #parameterNameDiscoverers}顺序调用，去解析对应方法/构造器的参数名称
+ *
  * {@link ParameterNameDiscoverer} implementation that tries several discoverer
  * delegates in succession. Those added first in the {@code addDiscoverer} method
  * have highest priority. If one returns {@code null}, the next will be tried.
@@ -63,8 +65,15 @@ public class PrioritizedParameterNameDiscoverer implements ParameterNameDiscover
 	@Override
 	@Nullable
 	public String[] getParameterNames(Constructor<?> ctor) {
+
+		// 循环参数名称发现器，获取参数名称：如果当前实现类是DefaultParameterNameDiscoverer，
+		// 则会有StandardReflectionParameterNameDiscoverer和LocalVariableTableParameterNameDiscoverer两个发现器
 		for (ParameterNameDiscoverer pnd : this.parameterNameDiscoverers) {
+
+			// 获取参数名称
 			String[] result = pnd.getParameterNames(ctor);
+
+			// 参数名称不为空，则直接返回
 			if (result != null) {
 				return result;
 			}

@@ -16,13 +16,12 @@
 
 package org.springframework.web.method.support;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.Arrays;
-
 import org.springframework.core.DefaultParameterNameDiscoverer;
+import org.springframework.core.KotlinReflectionParameterNameDiscoverer;
+import org.springframework.core.LocalVariableTableParameterNameDiscoverer;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.ParameterNameDiscoverer;
+import org.springframework.core.StandardReflectionParameterNameDiscoverer;
 import org.springframework.lang.Nullable;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.ReflectionUtils;
@@ -31,6 +30,10 @@ import org.springframework.web.bind.support.SessionStatus;
 import org.springframework.web.bind.support.WebDataBinderFactory;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.HandlerMethod;
+
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.Arrays;
 
 /**
  * Extension of {@link HandlerMethod} that invokes the underlying method with
@@ -51,6 +54,13 @@ public class InvocableHandlerMethod extends HandlerMethod {
 
 	private HandlerMethodArgumentResolverComposite resolvers = new HandlerMethodArgumentResolverComposite();
 
+	/**
+	 * 默认参数名称解析器，内部聚合着三个参数名称解析器：
+	 *
+	 * @see KotlinReflectionParameterNameDiscoverer
+	 * @see StandardReflectionParameterNameDiscoverer
+	 * @see LocalVariableTableParameterNameDiscoverer
+	 */
 	private ParameterNameDiscoverer parameterNameDiscoverer = new DefaultParameterNameDiscoverer();
 
 
@@ -169,7 +179,7 @@ public class InvocableHandlerMethod extends HandlerMethod {
 			// 获取控制器声明参数
 			MethodParameter parameter = parameters[i];
 
-			// 绑定参数名称获取器
+			// 绑定默认参数名称获取器，其内部聚合着三个参数名称解析器
 			parameter.initParameterNameDiscovery(this.parameterNameDiscoverer);
 
 			// 如果外部有直接提供参数数组provideArgs，则可以尝试直接从外部提供的参数中获取需要的方法参数
@@ -186,7 +196,8 @@ public class InvocableHandlerMethod extends HandlerMethod {
 			}
 			try {
 
-				// 否则调用参数解析器解析参数
+				// 否则调用参数解析器解析参数：先解析出参数名称，再按照参数名称获取参数值
+				// 参数名称使用上面设置的this.parameterNameDiscoverer来解析
 				args[i] = this.resolvers.resolveArgument(parameter, mavContainer, request, this.dataBinderFactory);
 			}
 			catch (Exception ex) {
