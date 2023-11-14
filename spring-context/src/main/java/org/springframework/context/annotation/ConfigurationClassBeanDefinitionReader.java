@@ -148,7 +148,7 @@ class ConfigurationClassBeanDefinitionReader {
 		// 处理Import进来的资源配置（一般是通过@ImportResource导入的资源）
 		loadBeanDefinitionsFromImportedResources(configClass.getImportedResources());
 
-		// 处理通过自定义注解Import进来的registrar
+		// 处理通过自定义注解Import进来的registrar，比如@EnableCaching和@EnableTransactionManagement
 		loadBeanDefinitionsFromRegistrars(configClass.getImportBeanDefinitionRegistrars());
 	}
 

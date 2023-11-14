@@ -16,14 +16,14 @@
 
 package org.springframework.cache.annotation;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.springframework.context.annotation.AdviceMode;
 import org.springframework.context.annotation.AdviceModeImportSelector;
 import org.springframework.context.annotation.AutoProxyRegistrar;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.StringUtils;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Selects which implementation of {@link AbstractCachingConfiguration} should
@@ -40,12 +40,15 @@ import org.springframework.util.StringUtils;
  */
 public class CachingConfigurationSelector extends AdviceModeImportSelector<EnableCaching> {
 
+	/** {@link org.springframework.cache.jcache.config.ProxyJCacheConfiguration} */
 	private static final String PROXY_JCACHE_CONFIGURATION_CLASS =
 			"org.springframework.cache.jcache.config.ProxyJCacheConfiguration";
 
+	/** {@link org.springframework.cache.aspectj.AspectJCachingConfiguration} */
 	private static final String CACHE_ASPECT_CONFIGURATION_CLASS_NAME =
 			"org.springframework.cache.aspectj.AspectJCachingConfiguration";
 
+	/** {@link org.springframework.cache.aspectj.AspectJJCacheConfiguration} */
 	private static final String JCACHE_ASPECT_CONFIGURATION_CLASS_NAME =
 			"org.springframework.cache.aspectj.AspectJJCacheConfiguration";
 
@@ -60,14 +63,27 @@ public class CachingConfigurationSelector extends AdviceModeImportSelector<Enabl
 		jcacheImplPresent = ClassUtils.isPresent(PROXY_JCACHE_CONFIGURATION_CLASS, classLoader);
 	}
 
-
 	/**
 	 * Returns {@link ProxyCachingConfiguration} or {@code AspectJCachingConfiguration}
 	 * for {@code PROXY} and {@code ASPECTJ} values of {@link EnableCaching#mode()},
 	 * respectively. Potentially includes corresponding JCache configuration as well.
+	 * <p>
+	 * {@link org.springframework.context.annotation.AdviceMode#PROXY}
+	 * <p>
+	 * {@link ProxyCachingConfiguration 切点和拦截器生成的配置类}
+	 *
+	 * @see AutoProxyRegistrar
+	 * @see ProxyCachingConfiguration
+	 * @see org.springframework.cache.jcache.config.ProxyJCacheConfiguration
+	 * <p>
+	 * {@link org.springframework.context.annotation.AdviceMode#ASPECTJ}
+	 * @see org.springframework.cache.aspectj.AspectJCachingConfiguration
+	 * @see org.springframework.cache.aspectj.AspectJJCacheConfiguration
 	 */
 	@Override
 	public String[] selectImports(AdviceMode adviceMode) {
+
+		// 根据不同的代理模式，返回不同的需要实例化的配置类名
 		switch (adviceMode) {
 			case PROXY:
 				return getProxyImports();

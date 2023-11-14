@@ -16,13 +16,12 @@
 
 package org.springframework.cache.interceptor;
 
-import java.io.Serializable;
-import java.lang.reflect.Method;
-
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
-
 import org.springframework.lang.Nullable;
+
+import java.io.Serializable;
+import java.lang.reflect.Method;
 
 /**
  * AOP Alliance MethodInterceptor for declarative cache
@@ -48,6 +47,7 @@ public class CacheInterceptor extends CacheAspectSupport implements MethodInterc
 	public Object invoke(final MethodInvocation invocation) throws Throwable {
 		Method method = invocation.getMethod();
 
+		// 如果实际的方法执行有异常抛出则用ThrowableWrapper进行包装，方便后续执行时识别异常
 		CacheOperationInvoker aopAllianceInvoker = () -> {
 			try {
 				return invocation.proceed();
@@ -58,8 +58,11 @@ public class CacheInterceptor extends CacheAspectSupport implements MethodInterc
 		};
 
 		try {
+			// 执行方法
 			return execute(aopAllianceInvoker, invocation.getThis(), method, invocation.getArguments());
 		}
+
+		// 捕获包装后的异常，并抛出实际的异常
 		catch (CacheOperationInvoker.ThrowableWrapper th) {
 			throw th.getOriginal();
 		}
