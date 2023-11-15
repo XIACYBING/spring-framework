@@ -97,30 +97,44 @@ public abstract class AbstractNamedValueMethodArgumentResolver implements Handle
 	public final Object resolveArgument(MethodParameter parameter, @Nullable ModelAndViewContainer mavContainer,
 			NativeWebRequest webRequest, @Nullable WebDataBinderFactory binderFactory) throws Exception {
 
-		// 解析出参数名称
+		// 解析出该参数对应注解的信息：name、require和defaultValue
 		NamedValueInfo namedValueInfo = getNamedValueInfo(parameter);
+
+		// Optional参数处理
 		MethodParameter nestedParameter = parameter.nestedIfOptional();
 
+		// 注解上的参数名称解析，因为可能包含占位符和表达式，解析结果为空则抛出异常
 		Object resolvedName = resolveStringValue(namedValueInfo.name);
 		if (resolvedName == null) {
 			throw new IllegalArgumentException(
 					"Specified name must not resolve to null: [" + namedValueInfo.name + "]");
 		}
 
+		// 实际从Request中获取参数
 		Object arg = resolveName(resolvedName.toString(), nestedParameter, webRequest);
 		if (arg == null) {
+
+			// 参数值为空，但是有默认值的，解析默认值可能存在的占位符和表达式，并返回结果
 			if (namedValueInfo.defaultValue != null) {
 				arg = resolveStringValue(namedValueInfo.defaultValue);
 			}
+
+			// 参数值为空，该参数要求必传，且参数类型不是Optional，则调用handleMissingValue
+			// 比如RequestParamMethodArgumentResolver进行了重写，会抛出异常
 			else if (namedValueInfo.required && !nestedParameter.isOptional()) {
 				handleMissingValue(namedValueInfo.name, nestedParameter, webRequest);
 			}
+
+			// 参数值为空，但是不要求必传，则处理一下控制：主要是基础数据类型默认值的处理，只支持布尔类型
 			arg = handleNullValue(namedValueInfo.name, arg, nestedParameter.getNestedParameterType());
 		}
+
+		// 如果参数值为空字符串，且默认值不为空，解析默认值可能存在的占位符和表达式，并返回结果
 		else if ("".equals(arg) && namedValueInfo.defaultValue != null) {
 			arg = resolveStringValue(namedValueInfo.defaultValue);
 		}
 
+		// todo binderFactory，看起来是WebBinder相关的逻辑，后续解析
 		if (binderFactory != null) {
 			WebDataBinder binder = binderFactory.createBinder(webRequest, null, namedValueInfo.name);
 			try {
@@ -136,6 +150,7 @@ public abstract class AbstractNamedValueMethodArgumentResolver implements Handle
 			}
 		}
 
+		// 参数值解析完成的后续处理
 		handleResolvedValue(arg, namedValueInfo.name, parameter, mavContainer, webRequest);
 
 		return arg;

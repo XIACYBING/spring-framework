@@ -20,6 +20,7 @@ import org.springframework.core.MethodParameter;
 import org.springframework.lang.Nullable;
 import org.springframework.web.bind.support.WebDataBinderFactory;
 import org.springframework.web.context.request.NativeWebRequest;
+import org.springframework.web.method.annotation.RequestParamMethodArgumentResolver;
 
 import java.util.Collections;
 import java.util.LinkedList;
@@ -106,7 +107,12 @@ public class HandlerMethodArgumentResolverComposite implements HandlerMethodArgu
 	 * Iterate over registered
 	 * {@link HandlerMethodArgumentResolver HandlerMethodArgumentResolvers}
 	 * and invoke the one that supports it.
+	 *
 	 * @throws IllegalArgumentException if no suitable argument resolver is found
+	 * @see RequestParamMethodArgumentResolver#resolveArgument
+	 * @see org.springframework.web.servlet.mvc.method.annotation.RequestResponseBodyMethodProcessor#resolveArgument
+	 * @see org.springframework.web.reactive.result.method.annotation.RequestPartMethodArgumentResolver#resolveArgument
+	 * @see org.springframework.web.reactive.result.method.annotation.PathVariableMapMethodArgumentResolver#resolveArgument
 	 */
 	@Override
 	@Nullable
