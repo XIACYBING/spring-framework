@@ -16,18 +16,8 @@
 
 package org.springframework.core.io.support;
 
-import java.io.IOException;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
 import org.springframework.core.annotation.AnnotationAwareOrderComparator;
 import org.springframework.core.io.UrlResource;
 import org.springframework.lang.Nullable;
@@ -38,6 +28,15 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
+
+import java.io.IOException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 
 /**
  * General purpose factory loading mechanism for internal use within the framework.
@@ -95,14 +94,20 @@ public final class SpringFactoriesLoader {
 		if (classLoaderToUse == null) {
 			classLoaderToUse = SpringFactoriesLoader.class.getClassLoader();
 		}
+
+		// 获取对应SPI接口的实现类全限定名
 		List<String> factoryImplementationNames = loadFactoryNames(factoryType, classLoaderToUse);
 		if (logger.isTraceEnabled()) {
 			logger.trace("Loaded [" + factoryType.getName() + "] names: " + factoryImplementationNames);
 		}
+
+		// 实例化对应的接口实现类
 		List<T> result = new ArrayList<>(factoryImplementationNames.size());
 		for (String factoryImplementationName : factoryImplementationNames) {
 			result.add(instantiateFactory(factoryImplementationName, factoryType, classLoaderToUse));
 		}
+
+		// 排序
 		AnnotationAwareOrderComparator.sort(result);
 		return result;
 	}
@@ -118,10 +123,17 @@ public final class SpringFactoriesLoader {
 	 * @see #loadFactories
 	 */
 	public static List<String> loadFactoryNames(Class<?> factoryType, @Nullable ClassLoader classLoader) {
+
+		// 获取所需接口的全限定类名
 		String factoryTypeName = factoryType.getName();
+
+		// 加载SPI接口和实现类的映射，获取所需接口的实现类集合
 		return loadSpringFactories(classLoader).getOrDefault(factoryTypeName, Collections.emptyList());
 	}
 
+	/**
+	 * 加载{@code Spring factories}的内容，{@code Spring SPI}机制的核心实现
+	 */
 	private static Map<String, List<String>> loadSpringFactories(@Nullable ClassLoader classLoader) {
 		MultiValueMap<String, String> result = cache.get(classLoader);
 		if (result != null) {
@@ -129,21 +141,41 @@ public final class SpringFactoriesLoader {
 		}
 
 		try {
-			Enumeration<URL> urls = (classLoader != null ?
-					classLoader.getResources(FACTORIES_RESOURCE_LOCATION) :
+
+			// 类加载器不为空，则使用类加载器加载所有Jar包下的META-INF/spring.factories文件资源，如果类加载器为空，则使用系统类加载器加载
+			// jar:file:/D:/AppData/Maven/repository/org/springframework/boot/spring-boot/2.3.1.RELEASE/spring-boot-2.3.1.RELEASE.jar!/META-INF/spring.factories
+			// jar:file:/D:/AppData/Maven/repository/com/hk/simba/base/simba-base-web-starter/1.0.0-SNAPSHOT/simba-base-web-starter-1.0.0-20230315.034026-210.jar!/META-INF/spring.factories
+			// jar:file:/D:/AppData/Maven/repository/org/springframework/boot/spring-boot-autoconfigure/2.3.1.RELEASE/spring-boot-autoconfigure-2.3.1.RELEASE.jar!/META-INF/spring.factories
+			// ...
+			Enumeration<URL> urls = (classLoader != null ? classLoader.getResources(FACTORIES_RESOURCE_LOCATION) :
 					ClassLoader.getSystemResources(FACTORIES_RESOURCE_LOCATION));
 			result = new LinkedMultiValueMap<>();
+
+			// 循环代表META-INF/spring.factories资源的URL
 			while (urls.hasMoreElements()) {
 				URL url = urls.nextElement();
+
+				// 包装URL
 				UrlResource resource = new UrlResource(url);
+
+				// 加载URL资源为Properties：每行按照=/等号分割为key/value，并放入properties中
 				Properties properties = PropertiesLoaderUtils.loadProperties(resource);
+
+				// 循环properties
 				for (Map.Entry<?, ?> entry : properties.entrySet()) {
-					String factoryTypeName = ((String) entry.getKey()).trim();
-					for (String factoryImplementationName : StringUtils.commaDelimitedListToStringArray((String) entry.getValue())) {
+
+					// key是接口名称
+					String factoryTypeName = ((String)entry.getKey()).trim();
+
+					// 将value用英文逗号切割为多个实现类的全限定类名，并添加到映射中
+					for (String factoryImplementationName : StringUtils.commaDelimitedListToStringArray(
+							(String)entry.getValue())) {
 						result.add(factoryTypeName, factoryImplementationName.trim());
 					}
 				}
 			}
+
+			// 将映射加入缓存
 			cache.put(classLoader, result);
 			return result;
 		}
@@ -156,12 +188,19 @@ public final class SpringFactoriesLoader {
 	@SuppressWarnings("unchecked")
 	private static <T> T instantiateFactory(String factoryImplementationName, Class<T> factoryType, ClassLoader classLoader) {
 		try {
+
+			// 加载类对象
 			Class<?> factoryImplementationClass = ClassUtils.forName(factoryImplementationName, classLoader);
+
+			// 如果不是指定接口的实现类，则抛出异常
 			if (!factoryType.isAssignableFrom(factoryImplementationClass)) {
 				throw new IllegalArgumentException(
-						"Class [" + factoryImplementationName + "] is not assignable to factory type [" + factoryType.getName() + "]");
+						"Class [" + factoryImplementationName + "] is not assignable to factory type ["
+								+ factoryType.getName() + "]");
 			}
-			return (T) ReflectionUtils.accessibleConstructor(factoryImplementationClass).newInstance();
+
+			// 否则获取对应类对象的可用构造器，使用反射实例化对象
+			return (T)ReflectionUtils.accessibleConstructor(factoryImplementationClass).newInstance();
 		}
 		catch (Throwable ex) {
 			throw new IllegalArgumentException(
