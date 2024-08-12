@@ -16,15 +16,8 @@
 
 package org.springframework.aop.interceptor;
 
-import java.lang.reflect.Method;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Future;
-
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
-
 import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.core.BridgeMethodResolver;
@@ -33,6 +26,12 @@ import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.lang.Nullable;
 import org.springframework.util.ClassUtils;
+
+import java.lang.reflect.Method;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Future;
 
 /**
  * AOP Alliance {@code MethodInterceptor} that processes method invocations
@@ -104,15 +103,20 @@ public class AsyncExecutionInterceptor extends AsyncExecutionAspectSupport imple
 		Method specificMethod = ClassUtils.getMostSpecificMethod(invocation.getMethod(), targetClass);
 		final Method userDeclaredMethod = BridgeMethodResolver.findBridgedMethod(specificMethod);
 
+		// 确定一个线程池
 		AsyncTaskExecutor executor = determineAsyncExecutor(userDeclaredMethod);
 		if (executor == null) {
 			throw new IllegalStateException(
 					"No executor specified and no default executor set on AsyncExecutionInterceptor either");
 		}
 
+		// 包装方法的调用
 		Callable<Object> task = () -> {
 			try {
 				Object result = invocation.proceed();
+
+				// 如果结果是一个Future，则直接获取Future中的数据
+				// 在实际执行的时候，会根据方法返回类型再进行一次结果对象的包装，详细逻辑查看doSubmit
 				if (result instanceof Future) {
 					return ((Future<?>) result).get();
 				}
@@ -126,7 +130,8 @@ public class AsyncExecutionInterceptor extends AsyncExecutionAspectSupport imple
 			return null;
 		};
 
-		return doSubmit(task, executor, invocation.getMethod().getReturnType());
+		// 提交任务
+		return super.doSubmit(task, executor, invocation.getMethod().getReturnType());
 	}
 
 	/**

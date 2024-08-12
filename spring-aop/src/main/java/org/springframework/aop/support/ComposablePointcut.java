@@ -16,13 +16,13 @@
 
 package org.springframework.aop.support;
 
-import java.io.Serializable;
-
 import org.springframework.aop.ClassFilter;
 import org.springframework.aop.MethodMatcher;
 import org.springframework.aop.Pointcut;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
+
+import java.io.Serializable;
 
 /**
  * Convenient class for building up pointcuts.
@@ -146,6 +146,8 @@ public class ComposablePointcut implements Pointcut, Serializable {
 	}
 
 	/**
+	 * 从使用场景判断，union代表两个切点有一个符合要求，即匹配成功
+	 * <p>
 	 * Apply a union with the given Pointcut.
 	 * <p>Note that for a Pointcut union, methods will only match if their
 	 * original ClassFilter (from the originating Pointcut) matches as well.

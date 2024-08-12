@@ -16,13 +16,13 @@
 
 package org.springframework.scheduling.annotation;
 
-import java.lang.reflect.Method;
-import java.util.concurrent.Executor;
-
 import org.springframework.aop.interceptor.AsyncExecutionInterceptor;
 import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.lang.Nullable;
+
+import java.lang.reflect.Method;
+import java.util.concurrent.Executor;
 
 /**
  * Specialization of {@link AsyncExecutionInterceptor} that delegates method execution to
@@ -65,6 +65,8 @@ public class AnnotationAsyncExecutionInterceptor extends AsyncExecutionIntercept
 
 
 	/**
+	 * 获取方法上，或类上声明的{@link Async#value()}注解值
+	 *
 	 * Return the qualifier or bean name of the executor to be used when executing the
 	 * given method, specified via {@link Async#value} at the method or declaring
 	 * class level. If {@code @Async} is specified at both the method and class level, the
@@ -84,6 +86,8 @@ public class AnnotationAsyncExecutionInterceptor extends AsyncExecutionIntercept
 		if (async == null) {
 			async = AnnotatedElementUtils.findMergedAnnotation(method.getDeclaringClass(), Async.class);
 		}
+
+		// 如果在方法上声明了@Async，在类上声明了@Async("asyncThreadPool")，此时只能获取到null
 		return (async != null ? async.value() : null);
 	}
 

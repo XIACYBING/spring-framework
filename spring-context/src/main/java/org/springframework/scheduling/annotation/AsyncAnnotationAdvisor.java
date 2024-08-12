@@ -16,15 +16,7 @@
 
 package org.springframework.scheduling.annotation;
 
-import java.lang.annotation.Annotation;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.Set;
-import java.util.concurrent.Executor;
-import java.util.function.Supplier;
-
 import org.aopalliance.aop.Advice;
-
 import org.springframework.aop.Pointcut;
 import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
 import org.springframework.aop.support.AbstractPointcutAdvisor;
@@ -36,6 +28,13 @@ import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.function.SingletonSupplier;
+
+import java.lang.annotation.Annotation;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.Set;
+import java.util.concurrent.Executor;
+import java.util.function.Supplier;
 
 /**
  * Advisor that activates asynchronous method execution through the {@link Async}
@@ -95,6 +94,7 @@ public class AsyncAnnotationAdvisor extends AbstractPointcutAdvisor implements B
 	public AsyncAnnotationAdvisor(
 			@Nullable Supplier<Executor> executor, @Nullable Supplier<AsyncUncaughtExceptionHandler> exceptionHandler) {
 
+		// 添加要解析的异步注解
 		Set<Class<? extends Annotation>> asyncAnnotationTypes = new LinkedHashSet<>(2);
 		asyncAnnotationTypes.add(Async.class);
 		try {
@@ -104,7 +104,11 @@ public class AsyncAnnotationAdvisor extends AbstractPointcutAdvisor implements B
 		catch (ClassNotFoundException ex) {
 			// If EJB 3.1 API not present, simply ignore.
 		}
+
+		// 构建advice
 		this.advice = buildAdvice(executor, exceptionHandler);
+
+		// 构建切点
 		this.pointcut = buildPointcut(asyncAnnotationTypes);
 	}
 
@@ -161,18 +165,31 @@ public class AsyncAnnotationAdvisor extends AbstractPointcutAdvisor implements B
 	 * @return the applicable Pointcut object, or {@code null} if none
 	 */
 	protected Pointcut buildPointcut(Set<Class<? extends Annotation>> asyncAnnotationTypes) {
+
+		// 复合切点
 		ComposablePointcut result = null;
 		for (Class<? extends Annotation> asyncAnnotationType : asyncAnnotationTypes) {
+
+			// 构建类级别的注解匹配切点
 			Pointcut cpc = new AnnotationMatchingPointcut(asyncAnnotationType, true);
+
+			// 构建方法级别的注解匹配切点
 			Pointcut mpc = new AnnotationMatchingPointcut(null, asyncAnnotationType, true);
+
+			// 使用类级别的注解匹配切点构建复合切点，或者向已有的复合切点中添加类级别的注解匹配切点
 			if (result == null) {
 				result = new ComposablePointcut(cpc);
 			}
 			else {
 				result.union(cpc);
 			}
+
+			// 添加方法级别的注解匹配切点
+			// 此处应该直接result.union(mpc)即可，因为该方法返回的是this，所以这边无需对result重复赋值
 			result = result.union(mpc);
 		}
+
+		// 返回构建完成的切点
 		return (result != null ? result : Pointcut.TRUE);
 	}
 

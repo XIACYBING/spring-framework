@@ -16,19 +16,8 @@
 
 package org.springframework.aop.interceptor;
 
-import java.lang.reflect.Method;
-import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Future;
-import java.util.function.Supplier;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
@@ -43,6 +32,16 @@ import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.util.concurrent.ListenableFuture;
 import org.springframework.util.function.SingletonSupplier;
+
+import java.lang.reflect.Method;
+import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Future;
+import java.util.function.Supplier;
 
 /**
  * Base class for asynchronous method execution aspects, such as
@@ -74,6 +73,9 @@ public abstract class AsyncExecutionAspectSupport implements BeanFactoryAware {
 
 	private final Map<Method, AsyncTaskExecutor> executors = new ConcurrentHashMap<>(16);
 
+	/**
+	 * 默认线程池，从链路上看，一般是null
+	 */
 	private SingletonSupplier<Executor> defaultExecutor;
 
 	private SingletonSupplier<AsyncUncaughtExceptionHandler> exceptionHandler;
@@ -161,19 +163,32 @@ public abstract class AsyncExecutionAspectSupport implements BeanFactoryAware {
 	 */
 	@Nullable
 	protected AsyncTaskExecutor determineAsyncExecutor(Method method) {
+
+		// 获取任务的线程池
 		AsyncTaskExecutor executor = this.executors.get(method);
+
+		// 如果为空，则从方法上获取
 		if (executor == null) {
 			Executor targetExecutor;
+
+			// 获取声明的线程池beanId（方法上或类上的注解声明）
 			String qualifier = getExecutorQualifier(method);
+
+			// 如果线程池beanId不为空，则获取对应的线程池，如果为空，则获取默认的线程池
 			if (StringUtils.hasLength(qualifier)) {
 				targetExecutor = findQualifiedExecutor(this.beanFactory, qualifier);
 			}
 			else {
 				targetExecutor = this.defaultExecutor.get();
 			}
+
+			// 如果没有获取到线程池，则直接返回null
 			if (targetExecutor == null) {
 				return null;
 			}
+
+			// 线程池类型转换和适配
+			// TaskExecutorAdapter支持任务的装饰Decorate，也就是可以在任务执行的前后增加自定义逻辑
 			executor = (targetExecutor instanceof AsyncListenableTaskExecutor ?
 					(AsyncListenableTaskExecutor) targetExecutor : new TaskExecutorAdapter(targetExecutor));
 			this.executors.put(method, executor);
@@ -270,6 +285,9 @@ public abstract class AsyncExecutionAspectSupport implements BeanFactoryAware {
 	 */
 	@Nullable
 	protected Object doSubmit(Callable<Object> task, AsyncTaskExecutor executor, Class<?> returnType) {
+
+		// 根据返回类型的不同，使用不同的方式进行异步任务的执行，并根据方法返回值类型对结果进行包装
+		// 举例：如果方法返回的是CompletableFuture<Integer>，那么task.call()返回的就是Integer，因为task内部已经调用过future.get()获取实际结果了
 		if (CompletableFuture.class.isAssignableFrom(returnType)) {
 			return CompletableFuture.supplyAsync(() -> {
 				try {
@@ -286,6 +304,8 @@ public abstract class AsyncExecutionAspectSupport implements BeanFactoryAware {
 		else if (Future.class.isAssignableFrom(returnType)) {
 			return executor.submit(task);
 		}
+
+		// 返回值类型不是以上这几种的，直接向线程池提交任务后，对外返回null即可
 		else {
 			executor.submit(task);
 			return null;
