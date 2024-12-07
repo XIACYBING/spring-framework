@@ -401,6 +401,10 @@ public abstract class CacheAspectSupport extends AbstractCacheInvoker
 	private Object execute(final CacheOperationInvoker invoker, Method method, CacheOperationContexts contexts) {
 
 		// 缓存同步操作，如果为true，代表只有一个Cacheable操作会被处理，且不处理CacheEvict和CachePut操作
+		// 缓存同步操作主要生效在cache.get中
+		// 比如RedisCache，在获取缓存的时候，会先针对cacheName进行加锁，加锁完成后会再次获取缓存，未获取到缓存时才会通过invoker获取到返回值
+		// 需要注意的是，sync发生在同一cacheName下，所有有标记sync的@Cacheable注解上
+
 		// Special handling of synchronized invocation
 		if (contexts.isSynchronized()) {
 
@@ -422,6 +426,10 @@ public abstract class CacheAspectSupport extends AbstractCacheInvoker
 					// 两个方法生效的前提是方法返回值类型是Optional
 
 					// Cache有多种实现，Cache.get也是具体实现存储和获取缓存的地方，如果key对应的缓存存在，则直接获取，否则直接valueLoader进行缓存获取和存储
+
+					// RedisCache的sync操作，发生在org.springframework.data.redis.cache.RedisCache.RedisWriteThroughCallback#doInRedis中，
+					// 会先对cacheName加锁，成功后获取缓存，缓存为空则通过element.get（内部会执行此处传入的() -> unwrapReturnValue(invokeOperation(invoker))）执行方法获取结果；
+					// () -> unwrapReturnValue(invokeOperation(invoker))，最终都会被包装到org.springframework.data.redis.cache.RedisCache.BinaryRedisCacheElement#element，最终执行
 					return wrapCacheValue(method, cache.get(key, () -> unwrapReturnValue(invokeOperation(invoker))));
 				} catch (Cache.ValueRetrievalException ex) {
 					// Directly propagate ThrowableWrapper from the invoker,
