@@ -16,14 +16,6 @@
 
 package org.springframework.context.annotation;
 
-import java.lang.annotation.Annotation;
-import java.lang.reflect.Method;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.springframework.aop.TargetSource;
 import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
@@ -34,6 +26,14 @@ import org.springframework.core.MethodParameter;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
+
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Method;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Complete implementation of the
@@ -49,16 +49,22 @@ public class ContextAnnotationAutowireCandidateResolver extends QualifierAnnotat
 	@Override
 	@Nullable
 	public Object getLazyResolutionProxyIfNecessary(DependencyDescriptor descriptor, @Nullable String beanName) {
+
+		// 如果有lazy注解，则构建一个Lazy代理，该代理会在实际调用的时候，使用beanFactory去获取具体需要使用的bean
 		return (isLazy(descriptor) ? buildLazyResolutionProxy(descriptor, beanName) : null);
 	}
 
 	protected boolean isLazy(DependencyDescriptor descriptor) {
+
+		// 判断依赖上是否有Lazy注解
 		for (Annotation ann : descriptor.getAnnotations()) {
 			Lazy lazy = AnnotationUtils.getAnnotation(ann, Lazy.class);
 			if (lazy != null && lazy.value()) {
 				return true;
 			}
 		}
+
+		// 判断方法上是否有Lazy注解
 		MethodParameter methodParam = descriptor.getMethodParameter();
 		if (methodParam != null) {
 			Method method = methodParam.getMethod();
@@ -75,7 +81,11 @@ public class ContextAnnotationAutowireCandidateResolver extends QualifierAnnotat
 	protected Object buildLazyResolutionProxy(final DependencyDescriptor descriptor, final @Nullable String beanName) {
 		Assert.state(getBeanFactory() instanceof DefaultListableBeanFactory,
 				"BeanFactory needs to be a DefaultListableBeanFactory");
+
+		// 获取beanFactory
 		final DefaultListableBeanFactory beanFactory = (DefaultListableBeanFactory) getBeanFactory();
+
+		// 生成一个Lazy代理内部类
 		TargetSource ts = new TargetSource() {
 			@Override
 			public Class<?> getTargetClass() {
@@ -87,7 +97,11 @@ public class ContextAnnotationAutowireCandidateResolver extends QualifierAnnotat
 			}
 			@Override
 			public Object getTarget() {
+
+				// 获取实际的bean
 				Object target = beanFactory.doResolveDependency(descriptor, beanName, null, null);
+
+				// 如果未获取对应的代理，则根据实际情况返回空集合或者抛出异常
 				if (target == null) {
 					Class<?> type = getTargetClass();
 					if (Map.class == type) {
@@ -102,12 +116,16 @@ public class ContextAnnotationAutowireCandidateResolver extends QualifierAnnotat
 					throw new NoSuchBeanDefinitionException(descriptor.getResolvableType(),
 							"Optional dependency not present for lazy injection point");
 				}
+
+				// 返回对应的代理
 				return target;
 			}
 			@Override
 			public void releaseTarget(Object target) {
 			}
 		};
+
+		// 使用代理工厂，根据TargetSource构建出一个实现了对应接口的代理类，并返回
 		ProxyFactory pf = new ProxyFactory();
 		pf.setTargetSource(ts);
 		Class<?> dependencyType = descriptor.getDependencyType();

@@ -1268,7 +1268,7 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 		}
 		else {
 
-			// @Lazy注解的处理
+			// @Lazy注解的处理：如果有@Lazy注解，则获取到一个Lazy代理，该代理会在实际使用时去获取实际的bean
 			Object result = getAutowireCandidateResolver().getLazyResolutionProxyIfNecessary(
 					descriptor, requestingBeanName);
 			if (result == null) {
