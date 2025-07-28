@@ -41,8 +41,9 @@ public class ProxyTransactionManagementConfiguration extends AbstractTransaction
 
 	/**
 	 * Bean事务的增强器，提供判断一个类是否需要进行事务代理、以及相关类/方法事务属性缓存的能力
-	 *
+	 * <p>
 	 * 最终会被AOP编织到代理类的增强其集合中
+	 *
 	 * @param transactionAttributeSource 事务属性源
 	 * @param transactionInterceptor 事务拦截器，该类的invoke方法是事务处理的入口
 	 */

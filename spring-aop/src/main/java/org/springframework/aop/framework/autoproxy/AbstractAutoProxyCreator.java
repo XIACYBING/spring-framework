@@ -277,6 +277,8 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 			if (StringUtils.hasLength(beanName)) {
 				this.targetSourcedBeans.add(beanName);
 			}
+
+			// 最终在此处，基于可用的advisor，生成proxy
 			Object[] specificInterceptors = getAdvicesAndAdvisorsForBean(beanClass, beanName, targetSource);
 			Object proxy = createProxy(beanClass, beanName, specificInterceptors, targetSource);
 			this.proxyTypes.put(cacheKey, proxy.getClass());
@@ -347,6 +349,7 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 	 * @param beanName the name of the bean
 	 * @param cacheKey the cache key for metadata access
 	 * @return a proxy wrapping the bean, or the raw bean instance as-is
+	 * <br/>
 	 * <NOTE>此处传入的bean，可能是刚实例化完成，未进行任何属性注入和初始化的bean（循环依赖{@link AbstractAutowireCapableBeanFactory#getEarlyBeanReference}），
 	 * 也可能是一个完整的bean</NOTE>
 	 */

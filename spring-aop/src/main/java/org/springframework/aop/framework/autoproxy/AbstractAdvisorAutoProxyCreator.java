@@ -16,8 +16,6 @@
 
 package org.springframework.aop.framework.autoproxy;
 
-import java.util.List;
-
 import org.springframework.aop.Advisor;
 import org.springframework.aop.TargetSource;
 import org.springframework.aop.support.AopUtils;
@@ -26,6 +24,8 @@ import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.core.annotation.AnnotationAwareOrderComparator;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
+
+import java.util.List;
 
 /**
  * Generic auto proxy creator that builds AOP proxies for specific beans
@@ -97,6 +97,8 @@ public abstract class AbstractAdvisorAutoProxyCreator extends AbstractAutoProxyC
 	 */
 	protected List<Advisor> findEligibleAdvisors(Class<?> beanClass, String beanName) {
 		// 获取所有可用的增强器，这里调用的方法子类有覆写，所以要注意调用的是哪个方法
+		// 当前方法的findCandidateAdvisors只是获取容器中所有advisor
+		// AnnotationAwareAspectJAutoProxyCreator的findCandidateAdvisors会额外基于AspectJ的切点获取对应的可执行Advisor
 		List<Advisor> candidateAdvisors = findCandidateAdvisors();
 
 		// 获取所有能应用在当前class上的增强器

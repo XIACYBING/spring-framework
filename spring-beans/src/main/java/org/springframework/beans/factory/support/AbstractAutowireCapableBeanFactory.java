@@ -427,6 +427,11 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 			throws BeansException {
 
 		Object result = existingBean;
+		// 为所有bean进行初始化后的后置处理
+		// 比如AnnotationAwareAspectJAutoProxyCreator，它的父类方法AbstractAutoProxyCreator.postProcessAfterInitialization
+		// 会为bean获取所有advisor，和所有AspectJ的切面对应的advisor，然后生成相关代理
+		// 需要注意的是，此处的一些后置处理器什么事情都没做，直接返回了对应的bean，比如CommonAnnotationBeanPostProcessor
+		// 和AutowiredAnnotationBeanPostProcessor，这两个真正发挥作用的是在当前类中的populateBean中调用postProcessProperties进行属性处理
 		for (BeanPostProcessor processor : getBeanPostProcessors()) {
 			Object current = processor.postProcessAfterInitialization(result, beanName);
 			if (current == null) {
