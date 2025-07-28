@@ -16,9 +16,6 @@
 
 package org.springframework.context.support;
 
-import java.io.IOException;
-import java.util.Properties;
-
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanInitializationException;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
@@ -34,6 +31,9 @@ import org.springframework.core.env.PropertySourcesPropertyResolver;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.StringValueResolver;
+
+import java.io.IOException;
+import java.util.Properties;
 
 /**
  * Specialization of {@link PlaceholderConfigurerSupport} that resolves ${...} placeholders
@@ -169,6 +169,8 @@ public class PropertySourcesPlaceholderConfigurer extends PlaceholderConfigurerS
 		propertyResolver.setPlaceholderSuffix(this.placeholderSuffix);
 		propertyResolver.setValueSeparator(this.valueSeparator);
 
+		// 生成一个字符串值的解析器，用于解析类似@Value场景下的值，此处本质是用AbstractPropertyResolver.resolvePlaceholders去解析
+		// 最终都走到：PropertyPlaceholderHelper.replacePlaceholders
 		StringValueResolver valueResolver = strVal -> {
 			String resolved = (this.ignoreUnresolvablePlaceholders ?
 					propertyResolver.resolvePlaceholders(strVal) :

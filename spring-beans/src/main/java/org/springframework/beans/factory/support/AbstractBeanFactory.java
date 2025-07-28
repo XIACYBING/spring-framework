@@ -956,6 +956,8 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 			return null;
 		}
 		String result = value;
+
+		// 基于配置的内嵌值解析器解析出一个值，目前的配置基本都会走到PropertyPlaceholderHelper.replacePlaceholders
 		for (StringValueResolver resolver : this.embeddedValueResolvers) {
 			result = resolver.resolveStringValue(result);
 			if (result == null) {

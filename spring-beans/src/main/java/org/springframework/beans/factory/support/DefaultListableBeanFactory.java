@@ -1299,12 +1299,13 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 			if (value != null) {
 				if (value instanceof String) {
 
-					// 获取占位符
+					// 获取占位符对应的属性信息
+					// 就是从environment中获取${}对应的属性，比如${a}，在environment中，a=b，那么在此处，strVal就等于b
 					String strVal = resolveEmbeddedValue((String) value);
 					BeanDefinition bd = (beanName != null && containsBean(beanName) ?
 							getMergedBeanDefinition(beanName) : null);
 
-					// SPEL表达式解析
+					// SPEL表达式解析（#{}）
 					value = evaluateBeanDefinitionString(strVal, bd);
 				}
 				TypeConverter converter = (typeConverter != null ? typeConverter : getTypeConverter());
